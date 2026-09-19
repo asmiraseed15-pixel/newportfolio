@@ -2,176 +2,204 @@
 
 import "./App.css";
 import Navbar from "./components/Navbar";
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { jsPDF } from "jspdf";
 
 type DocumentType = "resume" | "degree" | "medical" | null;
 
-type ProjectType = "groco" | "hopehands" | "foodflow" | null;
+type ProjectType =
+  | "groco"
+  | "hopehands"
+  | "foodflow"
+  | "photography"
+  | null;
+
+type Theme = "dark" | "light";
+
+type DocumentDetails = {
+  title: string;
+  file: string;
+  downloadName: string;
+  type: "pdf" | "image";
+};
+
+type ProjectDetails = {
+  title: string;
+  icon: string;
+  image: string;
+  description: string;
+  technologies: string[];
+  features: string[];
+  liveUrl: string;
+};
 
 function App() {
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [activeDocument, setActiveDocument] =
-    useState<DocumentType>(null);
+  /* =========================================
+     THEME
+  ========================================= */
 
-  const [activeProject, setActiveProject] =
-    useState<ProjectType>(null);
+  const [theme, setTheme] = useState<Theme>(() => {
+    const savedTheme = localStorage.getItem("portfolio-theme");
 
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactSubject, setContactSubject] = useState("");
-  const [contactMessage, setContactMessage] = useState("");
-
-  /*
-    =========================================
-    YOUR EMAIL ADDRESS
-    =========================================
-
-    Replace this with your real email address.
-
-    Example:
-    const recruiterEmail = "yourname@gmail.com";
-  */
-  const recruiterEmail = "asmiraseed15@gmail.com";
+    return savedTheme === "light" ? "light" : "dark";
+  });
 
   useEffect(() => {
-    const loadVoices = () => {
-      setVoices(window.speechSynthesis.getVoices());
-    };
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("portfolio-theme", theme);
+  }, [theme]);
 
-    loadVoices();
-
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-
-    return () => {
-      window.speechSynthesis.cancel();
-    };
-  }, []);
-
-  const speakText = (text: string) => {
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-
-    const englishVoice =
-      voices.find(
-        (voice) =>
-          voice.lang.toLowerCase().startsWith("en") &&
-          voice.name.toLowerCase().includes("female")
-      ) ||
-      voices.find((voice) =>
-        voice.lang.toLowerCase().startsWith("en")
-      );
-
-    if (englishVoice) {
-      utterance.voice = englishVoice;
-    }
-
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      setIsPaused(false);
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setIsPaused(false);
-    };
-
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      setIsPaused(false);
-    };
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const pauseVoice = () => {
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.pause();
-      setIsPaused(true);
-    }
-  };
-
-  const resumeVoice = () => {
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-      setIsPaused(false);
-    }
-  };
-
-  const stopVoice = () => {
-    window.speechSynthesis.cancel();
-    setIsSpeaking(false);
-    setIsPaused(false);
-  };
-
-  const speakSection = (text: string) => {
-    speakText(text);
+  const toggleTheme = () => {
+    setTheme((currentTheme) =>
+      currentTheme === "dark" ? "light" : "dark"
+    );
   };
 
   /* =========================================
-     DOCUMENT FUNCTIONS
+     ABOUT ME VOICE
+     ONLY VOICE FEATURE IN THE PORTFOLIO
   ========================================= */
 
+  const aboutAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const [isVoicePlaying, setIsVoicePlaying] =
+    useState(false);
+
+  const [isVoicePaused, setIsVoicePaused] =
+    useState(false);
+
+  const playAboutVoice = () => {
+    const audio = aboutAudioRef.current;
+
+    if (!audio) return;
+
+    if (audio.ended) {
+      audio.currentTime = 0;
+    }
+
+    audio
+      .play()
+      .then(() => {
+        setIsVoicePlaying(true);
+        setIsVoicePaused(false);
+      })
+      .catch(() => {
+        alert(
+          "Unable to play the voice recording. Please make sure Voice.mp3 exists inside the public folder."
+        );
+      });
+  };
+
+  const pauseAboutVoice = () => {
+    const audio = aboutAudioRef.current;
+
+    if (!audio) return;
+
+    if (!audio.paused) {
+      audio.pause();
+      setIsVoicePlaying(true);
+      setIsVoicePaused(true);
+    }
+  };
+
+  const stopAboutVoice = () => {
+    const audio = aboutAudioRef.current;
+
+    if (!audio) return;
+
+    audio.pause();
+    audio.currentTime = 0;
+
+    setIsVoicePlaying(false);
+    setIsVoicePaused(false);
+  };
+
+  const handleAboutVoiceEnded = () => {
+    setIsVoicePlaying(false);
+    setIsVoicePaused(false);
+  };
+
+  /* =========================================
+     DOCUMENTS
+  ========================================= */
+
+  const [activeDocument, setActiveDocument] =
+    useState<DocumentType>(null);
+
   const openDocument = (documentType: DocumentType) => {
-    stopVoice();
+    stopAboutVoice();
+
     setActiveDocument(documentType);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const closeDocument = () => {
-    stopVoice();
+    stopAboutVoice();
+
     setActiveDocument(null);
 
     setTimeout(() => {
       document
         .getElementById("documents")
-        ?.scrollIntoView({ behavior: "smooth" });
+        ?.scrollIntoView({
+          behavior: "smooth",
+        });
     }, 100);
   };
 
-  const getDocumentDetails = () => {
-    if (activeDocument === "resume") {
-      return {
-        title: "My Resume",
-        file: "/Asmina_Resume.pdf",
-        downloadName: "Asmina_Resume.pdf",
-        type: "pdf",
-      };
-    }
+  const getDocumentDetails =
+    (): DocumentDetails | null => {
+      if (activeDocument === "resume") {
+        return {
+          title: "My Resume",
+          file: "/resume.png",
+          downloadName: "Asmina_Resume.png",
+          type: "image",
+        };
+      }
 
-    if (activeDocument === "degree") {
-      return {
-        title: "Degree Certificate",
-        file: "/degree.png",
-        downloadName: "degree.png",
-        type: "image",
-      };
-    }
+      if (activeDocument === "degree") {
+        return {
+          title: "Degree Certificate",
+          file: "/degree.png",
+          downloadName: "Asmina_Degree.png",
+          type: "image",
+        };
+      }
 
-    if (activeDocument === "medical") {
-      return {
-        title: "Medical Coding Certificate",
-        file: "/medical.png",
-        downloadName: "medical.png",
-        type: "image",
-      };
-    }
+      if (activeDocument === "medical") {
+        return {
+          title: "Medical Coding Certificate",
+          file: "/medical.png",
+          downloadName: "Asmina_Medical_Coding.png",
+          type: "image",
+        };
+      }
 
-    return null;
-  };
+      return null;
+    };
+
+  const documentDetails = getDocumentDetails();
 
   /* =========================================
-     PROJECT DETAILS
+     PROJECTS
   ========================================= */
 
-  const openProjectDetails = (project: ProjectType) => {
-    stopVoice();
+  const [activeProject, setActiveProject] =
+    useState<ProjectType>(null);
+
+  const openProject = (project: ProjectType) => {
+    stopAboutVoice();
+
     setActiveProject(project);
 
     window.scrollTo({
@@ -180,456 +208,600 @@ function App() {
     });
   };
 
-  const closeProjectDetails = () => {
-    stopVoice();
+  const closeProject = () => {
+    stopAboutVoice();
+
     setActiveProject(null);
 
     setTimeout(() => {
       document
         .getElementById("projects")
-        ?.scrollIntoView({ behavior: "smooth" });
+        ?.scrollIntoView({
+          behavior: "smooth",
+        });
     }, 100);
   };
 
-  const getProjectDetails = () => {
-    if (activeProject === "groco") {
-      return {
-        title: "GroCo",
-        icon: "bi-cart3",
-        description:
-          "A modern grocery shopping website built with React and TypeScript with product browsing, cart, checkout and payment flow.",
-        technologies: [
-          "React",
-          "TypeScript",
-          "CSS",
-        ],
-        features: [
-          "Product browsing",
-          "Product categories",
-          "Product details",
-          "Shopping cart",
-          "Quantity management",
-          "Coupon functionality",
-          "Checkout flow",
-          "Payment flow",
-          "Responsive design",
-        ],
-        liveUrl: "https://groco-mu.vercel.app",
-      };
-    }
+  const getProjectDetails =
+    (): ProjectDetails | null => {
+      if (activeProject === "groco") {
+        return {
+          title: "GroCo",
+          icon: "bi-cart3",
+          image: "/gro.png",
+          description:
+            "A modern grocery shopping website built with React and TypeScript with product browsing, cart, checkout and payment flow.",
+          technologies: [
+            "React",
+            "TypeScript",
+            "CSS",
+          ],
+          features: [
+            "Product browsing",
+            "Product categories",
+            "Product details",
+            "Shopping cart",
+            "Quantity management",
+            "Coupon functionality",
+            "Checkout flow",
+            "Payment flow",
+            "Responsive design",
+          ],
+          liveUrl:
+            "https://groco-mu.vercel.app",
+        };
+      }
 
-    if (activeProject === "hopehands") {
-      return {
-        title: "HopeHands Foundation",
-        icon: "bi-heart-pulse",
-        description:
-          "A charity website designed to present causes, volunteering opportunities, donations and community impact in a clean responsive interface.",
-        technologies: [
-          "React",
-          "TypeScript",
-          "CSS",
-        ],
-        features: [
-          "Responsive charity website",
-          "Causes section",
-          "Donation flow",
-          "Volunteer section",
-          "Volunteer form",
-          "Thank-you page",
-          "Impact section",
-          "Community stories",
-        ],
-        liveUrl:
-          "https://charity1-one.vercel.app/",
-      };
-    }
+      if (activeProject === "hopehands") {
+        return {
+          title: "HopeHands Foundation",
+          icon: "bi-heart-pulse",
+          image: "/char.png",
+          description:
+            "A charity website designed to present causes, volunteering opportunities, donations and community impact in a clean responsive interface.",
+          technologies: [
+            "React",
+            "TypeScript",
+            "CSS",
+          ],
+          features: [
+            "Responsive charity website",
+            "Causes section",
+            "Donation flow",
+            "Volunteer section",
+            "Volunteer form",
+            "Thank-you page",
+            "Impact section",
+            "Community stories",
+          ],
+          liveUrl:
+            "https://charity1-one.vercel.app/",
+        };
+      }
 
-    if (activeProject === "foodflow") {
-      return {
-        title: "FoodFlow",
-        icon: "bi-phone",
-        description:
-          "A food delivery mobile application concept built with Expo and React Native with authentication, cart and checkout experiences.",
-        technologies: [
-          "React Native",
-          "Expo",
-          "JavaScript",
-        ],
-        features: [
-          "Authentication",
-          "Login and signup",
-          "Food browsing",
-          "Shopping cart",
-          "Cart quantity management",
-          "Checkout",
-          "Address management",
-          "Payment selection",
-          "Mobile responsive experience",
-        ],
-        liveUrl: "https://github.com/",
-      };
-    }
+      if (activeProject === "foodflow") {
+        return {
+          title: "FoodFlow",
+          icon: "bi-phone",
+          image: "/food.png",
+          description:
+            "A food delivery mobile application concept built with Expo and React Native with authentication, cart and checkout experiences.",
+          technologies: [
+            "React Native",
+            "Expo",
+            "JavaScript",
+          ],
+          features: [
+            "Authentication",
+            "Login and signup",
+            "Food browsing",
+            "Shopping cart",
+            "Cart quantity management",
+            "Checkout",
+            "Address management",
+            "Payment selection",
+            "Mobile-friendly experience",
+          ],
+          liveUrl:
+            "https://github.com/",
+        };
+      }
 
-    return null;
-  };
+      if (activeProject === "photography") {
+        return {
+          title: "Photography Portfolio",
+          icon: "bi-camera",
+          image: "/photo.png",
+          description:
+            "A stylish photography portfolio website created to showcase photographs through a clean, responsive and visually engaging interface.",
+          technologies: [
+            "HTML",
+            "CSS",
+            "Bootstrap",
+            "JavaScript",
+          ],
+          features: [
+            "Responsive photography portfolio",
+            "Modern landing page",
+            "Photography gallery",
+            "Bootstrap responsive layout",
+            "Image showcase",
+            "Interactive navigation",
+            "JavaScript functionality",
+            "Mobile-friendly design",
+          ],
+          liveUrl:
+            "https://github.com/",
+        };
+      }
+
+      return null;
+    };
+
+  const projectDetails = getProjectDetails();
 
   /* =========================================
-     CONTACT EMAIL
+     CONTACT FORM
   ========================================= */
 
   const handleContactSubmit = (
-    event: React.FormEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
 
-    if (
-      !contactName.trim() ||
-      !contactEmail.trim() ||
-      !contactSubject.trim() ||
-      !contactMessage.trim()
-    ) {
-      alert("Please enter all contact details before submitting.");
+    const form = event.currentTarget;
+
+    const formData = new FormData(form);
+
+    const name = String(
+      formData.get("name") || ""
+    ).trim();
+
+    const email = String(
+      formData.get("email") || ""
+    ).trim();
+
+    const subject = String(
+      formData.get("subject") || ""
+    ).trim();
+
+    const message = String(
+      formData.get("message") || ""
+    ).trim();
+
+    if (!name || !email || !subject || !message) {
+      alert("Please fill in all the fields.");
       return;
     }
 
-    /*
-      Create the contact message PDF.
-    */
+    /* CREATE PDF */
 
     const pdf = new jsPDF();
 
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(22);
-    pdf.text("Portfolio Contact Message", 20, 25);
+    pdf.setFontSize(20);
 
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-
-    pdf.text("Contact Details", 20, 42);
-
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Name:", 20, 55);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.text(contactName, 55, 55);
-
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Email:", 20, 67);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.text(contactEmail, 55, 67);
-
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Subject:", 20, 79);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.text(contactSubject, 55, 79);
-
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Message:", 20, 95);
-
-    pdf.setFont("helvetica", "normal");
-
-    const messageLines = pdf.splitTextToSize(
-      contactMessage,
-      165
-    );
-
-    pdf.text(messageLines, 20, 107);
-
-    pdf.setFontSize(9);
     pdf.text(
-      `Generated from Asmina's Portfolio`,
+      "Portfolio Contact Message",
       20,
-      285
+      25
     );
 
-    pdf.save("portfolio-contact-message.pdf");
+    pdf.setFontSize(12);
 
-    /*
-      =========================================
-      EMAIL
-      =========================================
+    pdf.text(
+      `Name: ${name}`,
+      20,
+      45
+    );
 
-      This opens the visitor's default email application.
+    pdf.text(
+      `Email: ${email}`,
+      20,
+      55
+    );
 
-      Replace recruiterEmail above with your real email.
-    */
+    pdf.text(
+      `Subject: ${subject}`,
+      20,
+      65
+    );
 
-    const emailBody = `
-Hello Asmina,
+    pdf.text(
+      "Message:",
+      20,
+      80
+    );
 
-You have received a new message from your portfolio.
+    const messageLines =
+      pdf.splitTextToSize(
+        message,
+        170
+      );
 
-Name:
-${contactName}
+    pdf.text(
+      messageLines,
+      20,
+      90
+    );
 
-Email:
-${contactEmail}
+    pdf.save(
+      "portfolio-contact-message.pdf"
+    );
 
-Subject:
-${contactSubject}
-
-Message:
-${contactMessage}
-
---------------------------------
-Sent from Asmina's Portfolio
-`;
+    /* OPEN EMAIL */
 
     const mailtoLink =
-      `mailto:${recruiterEmail}` +
-      `?subject=${encodeURIComponent(
-        contactSubject
-      )}` +
-      `&body=${encodeURIComponent(emailBody)}`;
+      `mailto:asmiraseed15@gmail.com` +
+      `?subject=${encodeURIComponent(subject)}` +
+      `&body=${encodeURIComponent(
+        `Name: ${name}\nEmail: ${email}\n\n${message}`
+      )}`;
 
     window.location.href = mailtoLink;
 
-    speakText(
-      `Thank you ${contactName}. Your message has been prepared successfully for email.`
-    );
-
-    alert(
-      "Your message has been prepared successfully.\nYour email application will open so the message can be sent."
-    );
-
-    setContactName("");
-    setContactEmail("");
-    setContactSubject("");
-    setContactMessage("");
+    form.reset();
   };
-
-  const documentDetails = getDocumentDetails();
-  const projectDetails = getProjectDetails();
 
   /* =========================================
      DOCUMENT VIEWER
   ========================================= */
 
-  if (activeDocument && documentDetails) {
+  if (
+    activeDocument &&
+    documentDetails
+  ) {
     return (
-      <div className="document-viewer">
-        <div className="document-viewer-header">
-          <button
-            className="back-document-btn"
-            onClick={closeDocument}
-          >
-            <i className="bi bi-arrow-left"></i>
-            Back to Portfolio
-          </button>
+      <div
+        className={`portfolio ${
+          theme === "light"
+            ? "light-theme"
+            : "dark-theme"
+        }`}
+      >
+        <div className="aurora aurora-one"></div>
+        <div className="aurora aurora-two"></div>
+        <div className="aurora aurora-three"></div>
 
-          <div className="document-viewer-title">
-            {documentDetails.title}
+        <div className="background-grid"></div>
+
+        <div className="document-viewer">
+
+          <div className="document-viewer-header">
+
+            <button
+              className="back-document-btn"
+              onClick={closeDocument}
+            >
+              <i className="bi bi-arrow-left"></i>
+              Back to Portfolio
+            </button>
+
+            <div className="document-viewer-title">
+              {documentDetails.title}
+            </div>
+
+            <a
+              className="viewer-download-btn"
+              href={documentDetails.file}
+              download={
+                documentDetails.downloadName
+              }
+            >
+              <i className="bi bi-download"></i>
+              Download
+            </a>
+
           </div>
 
-          <a
-            className="viewer-download-btn"
-            href={documentDetails.file}
-            download={documentDetails.downloadName}
-          >
-            <i className="bi bi-download"></i>
-            Download
-          </a>
-        </div>
+          <div className="document-viewer-content">
 
-        <div className="document-viewer-content">
-          {documentDetails.type === "pdf" ? (
-            <iframe
-              src={documentDetails.file}
-              title={documentDetails.title}
-            />
-          ) : (
-            <img
-              src={documentDetails.file}
-              alt={documentDetails.title}
-            />
-          )}
+            {documentDetails.type === "pdf" ? (
+              <iframe
+                src={documentDetails.file}
+                title={documentDetails.title}
+              />
+            ) : (
+              <img
+                src={documentDetails.file}
+                alt={documentDetails.title}
+              />
+            )}
+
+          </div>
+
         </div>
       </div>
     );
   }
 
   /* =========================================
-     PROJECT DETAILS VIEWER
+     PROJECT VIEWER
   ========================================= */
 
-  if (activeProject && projectDetails) {
+  if (
+    activeProject &&
+    projectDetails
+  ) {
     return (
-      <div className="project-details-page">
-        <div className="project-details-header">
-          <button
-            className="back-project-btn"
-            onClick={closeProjectDetails}
-          >
-            <i className="bi bi-arrow-left"></i>
-            Back to Portfolio
-          </button>
+      <div
+        className={`portfolio ${
+          theme === "light"
+            ? "light-theme"
+            : "dark-theme"
+        }`}
+      >
+        <div className="aurora aurora-one"></div>
+        <div className="aurora aurora-two"></div>
+        <div className="aurora aurora-three"></div>
 
-          <div className="project-details-header-title">
-            Project Details
-          </div>
+        <div className="background-grid"></div>
 
-          <a
-            href={projectDetails.liveUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="project-live-btn"
-          >
-            View Project
-            <i className="bi bi-arrow-up-right"></i>
-          </a>
-        </div>
+        <div className="project-viewer">
 
-        <main className="project-details-content">
-          <div className="project-details-hero">
-            <div className="project-details-icon">
-              <i
-                className={`bi ${projectDetails.icon}`}
-              ></i>
-            </div>
+          <div className="project-viewer-header">
 
-            <span className="project-details-label">
-              PROJECT DETAILS
-            </span>
-
-            <h1>{projectDetails.title}</h1>
-
-            <p>{projectDetails.description}</p>
-          </div>
-
-          <div className="project-details-grid">
-            <div className="project-details-card">
-              <div className="project-details-card-title">
-                <i className="bi bi-code-square"></i>
-                <h2>Technologies Used</h2>
-              </div>
-
-              <div className="project-details-tags">
-                {projectDetails.technologies.map(
-                  (technology) => (
-                    <span key={technology}>
-                      {technology}
-                    </span>
-                  )
-                )}
-              </div>
-            </div>
-
-            <div className="project-details-card">
-              <div className="project-details-card-title">
-                <i className="bi bi-check2-circle"></i>
-                <h2>Key Features</h2>
-              </div>
-
-              <div className="project-features">
-                {projectDetails.features.map(
-                  (feature) => (
-                    <div
-                      className="project-feature"
-                      key={feature}
-                    >
-                      <i className="bi bi-check-circle"></i>
-                      <span>{feature}</span>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="project-details-bottom">
             <button
-              className="back-project-large-btn"
-              onClick={closeProjectDetails}
+              className="back-document-btn"
+              onClick={closeProject}
             >
               <i className="bi bi-arrow-left"></i>
               Back to Portfolio
             </button>
 
+            <div className="project-viewer-title">
+              {projectDetails.title}
+            </div>
+
             <a
+              className="viewer-download-btn"
               href={projectDetails.liveUrl}
               target="_blank"
               rel="noreferrer"
-              className="project-open-large-btn"
             >
+              <i className="bi bi-box-arrow-up-right"></i>
               View Project
-              <i className="bi bi-arrow-up-right"></i>
             </a>
+
           </div>
-        </main>
+
+          <div className="project-detail-content">
+
+            <div className="project-detail-hero">
+
+              <div className="project-detail-image">
+                <img
+                  src={projectDetails.image}
+                  alt={projectDetails.title}
+                />
+              </div>
+
+              <div className="project-detail-info">
+
+                <div className="project-detail-icon">
+                  <i
+                    className={`bi ${projectDetails.icon}`}
+                  ></i>
+                </div>
+
+                <span className="detail-label">
+                  FEATURED PROJECT
+                </span>
+
+                <h1>
+                  {projectDetails.title}
+                </h1>
+
+                <p>
+                  {projectDetails.description}
+                </p>
+
+                <a
+                  className="primary-btn"
+                  href={projectDetails.liveUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View Live Project
+                  <i className="bi bi-arrow-up-right"></i>
+                </a>
+
+              </div>
+
+            </div>
+
+            <div className="project-detail-grid">
+
+              <div className="detail-card">
+
+                <div className="detail-card-heading">
+                  <i className="bi bi-code-slash"></i>
+                  <h3>Technologies</h3>
+                </div>
+
+                <div className="technology-list">
+
+                  {projectDetails.technologies.map(
+                    (technology) => (
+                      <span key={technology}>
+                        {technology}
+                      </span>
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+              <div className="detail-card">
+
+                <div className="detail-card-heading">
+                  <i className="bi bi-stars"></i>
+                  <h3>Key Features</h3>
+                </div>
+
+                <ul className="feature-list">
+
+                  {projectDetails.features.map(
+                    (feature) => (
+                      <li key={feature}>
+                        <i className="bi bi-check-circle-fill"></i>
+                        {feature}
+                      </li>
+                    )
+                  )}
+
+                </ul>
+
+              </div>
+
+            </div>
+
+            <div className="project-detail-actions">
+
+              <button
+                className="secondary-btn"
+                onClick={closeProject}
+              >
+                <i className="bi bi-arrow-left"></i>
+                Back
+              </button>
+
+              <a
+                className="primary-btn"
+                href={projectDetails.liveUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View Project
+                <i className="bi bi-arrow-up-right"></i>
+              </a>
+
+            </div>
+
+          </div>
+
+        </div>
       </div>
     );
   }
 
+  /* =========================================
+     MAIN PORTFOLIO
+  ========================================= */
+
   return (
-    <div className="portfolio">
+    <div
+      className={`portfolio ${
+        theme === "light"
+          ? "light-theme"
+          : "dark-theme"
+      }`}
+    >
+
       <div className="aurora aurora-one"></div>
       <div className="aurora aurora-two"></div>
       <div className="aurora aurora-three"></div>
+
       <div className="background-grid"></div>
 
       <Navbar />
+
+      {/* THEME BUTTON */}
+
+      <button
+        className="theme-toggle"
+        onClick={toggleTheme}
+        aria-label="Toggle theme"
+        title={
+          theme === "dark"
+            ? "Switch to Light Mode"
+            : "Switch to Dark Mode"
+        }
+      >
+        {theme === "dark" ? (
+          <>
+            <i className="bi bi-sun-fill"></i>
+            <span>Light</span>
+          </>
+        ) : (
+          <>
+            <i className="bi bi-moon-stars-fill"></i>
+            <span>Dark</span>
+          </>
+        )}
+      </button>
 
       {/* =========================================
           HERO
       ========================================= */}
 
-      <section className="section hero" id="home">
-        <div className="hero-glow"></div>
+      <section
+        className="hero section"
+        id="home"
+      >
 
         <div className="hero-content">
+
           <div className="availability">
             <span className="availability-dot"></span>
             Available for opportunities
           </div>
 
-          <div className="hello-text">
+          <p className="hero-small-title">
             HELLO, I'M
-          </div>
+          </p>
 
           <h1>
             Asmina <span>Parveen</span>
           </h1>
 
           <h2>
-            Frontend Developer &amp; Medical Coding Professional
+            Frontend Developer &amp;
+            <br />
+            Medical Coding Professional
           </h2>
 
           <p className="hero-description">
-            I create modern, responsive and user-friendly web
-            applications using HTML, CSS, JavaScript, React and
-            TypeScript. I also have a background in Microbiology,
-            Medical Coding and customer service.
+            I create clean, responsive and
+            user-friendly digital experiences
+            using HTML, CSS, JavaScript, React
+            and TypeScript, while bringing a
+            professional background in
+            Microbiology, Medical Coding and
+            customer service.
           </p>
 
           <div className="hero-buttons">
+
             <a
               href="#projects"
               className="primary-btn"
             >
-              <i className="bi bi-code-slash"></i>
               View My Work
+              <i className="bi bi-arrow-up-right"></i>
             </a>
 
             <a
               href="#contact"
               className="secondary-btn"
             >
-              <i className="bi bi-chat-dots"></i>
               Let's Connect
+              <i className="bi bi-envelope"></i>
             </a>
 
-            <button
+            <a
+              href="/resume.png"
+              download="Asmina_Resume.png"
               className="resume-btn"
-              onClick={() => openDocument("resume")}
             >
-              <i className="bi bi-file-earmark-person"></i>
+              <i className="bi bi-download"></i>
               Resume
-            </button>
+            </a>
+
           </div>
 
           <div className="social-links">
+
             <a
               href="https://github.com/"
               target="_blank"
@@ -652,368 +824,461 @@ Sent from Asmina's Portfolio
               href="mailto:asmiraseed15@gmail.com"
               aria-label="Email"
             >
-              <i className="bi bi-envelope"></i>
+              <i className="bi bi-envelope-fill"></i>
             </a>
+
           </div>
+
         </div>
 
-        <div className="hero-image-area">
-          <div className="profile-glow"></div>
+        <div className="hero-visual">
 
-          <div className="profile-ring">
+          <div className="hero-glow"></div>
+
+          <div className="hero-image-wrapper">
+
+            <div className="hero-image-border"></div>
+
             <img
               src="/pro.png"
-              alt="Asmina"
-              className="profile-image"
+              alt="Asmina Parveen"
+              className="hero-image"
             />
-          </div>
 
-          <div className="floating-tech react-floating">
-            <i className="bi bi-code-square"></i>
-            <div>
-              <strong>React</strong>
-              <small>Frontend</small>
+            <div className="floating-card floating-card-one">
+
+              <i className="bi bi-code-slash"></i>
+
+              <div>
+                <strong>Frontend</strong>
+                <span>Development</span>
+              </div>
+
             </div>
-          </div>
 
-          <div className="floating-tech js-floating">
-            <span className="js-icon">JS</span>
-            <div>
-              <strong>JavaScript</strong>
-              <small>Programming</small>
+            <div className="floating-card floating-card-two">
+
+              <i className="bi bi-patch-check-fill"></i>
+
+              <div>
+                <strong>Medical</strong>
+                <span>Coding</span>
+              </div>
+
             </div>
+
           </div>
 
-          <div className="tech-column">
-            <button
-              onClick={() =>
-                speakSection(
-                  "HTML is used to structure the content of a web page."
-                )
-              }
-            >
-              <i className="bi bi-filetype-html"></i>
-              HTML
-            </button>
-
-            <button
-              onClick={() =>
-                speakSection(
-                  "CSS is used to style websites and create responsive layouts."
-                )
-              }
-            >
-              <i className="bi bi-filetype-css"></i>
-              CSS
-            </button>
-
-            <button
-              onClick={() =>
-                speakSection(
-                  "JavaScript adds logic and interactivity to web applications."
-                )
-              }
-            >
-              <span className="small-js">JS</span>
-              JavaScript
-            </button>
-
-            <button
-              onClick={() =>
-                speakSection(
-                  "React is a JavaScript library used to build reusable user interfaces."
-                )
-              }
-            >
-              <i className="bi bi-code-square"></i>
-              React
-            </button>
-          </div>
         </div>
+
       </section>
 
       {/* =========================================
           ABOUT
       ========================================= */}
 
-      <section className="section" id="about">
+      <section
+        className="section about-section"
+        id="about"
+      >
+
         <div className="section-heading">
+
           <span>01</span>
 
           <div>
-            <p>GET TO KNOW ME</p>
-            <h2>About Me</h2>
+            <p>ABOUT ME</p>
+
+            <h2>
+              Building digital
+              <br />
+              experiences with purpose.
+            </h2>
           </div>
+
         </div>
 
         <div className="about-grid">
+
           <div className="about-text">
-            <h3>
-              Building digital experiences with{" "}
-              <span>purpose.</span>
-            </h3>
 
             <p>
-              I am a passionate frontend developer who enjoys
-              transforming ideas into clean, modern and responsive
-              web applications.
+              I am Asmina Parveen, a passionate
+              Frontend Developer and Medical
+              Coding Professional who enjoys
+              combining technology, creativity
+              and attention to detail.
             </p>
 
             <p>
-              My technical journey includes HTML, CSS, JavaScript,
-              React, TypeScript and Python. Along with technology,
-              my educational background in Microbiology and Medical
-              Coding gives me a unique combination of technical and
-              healthcare knowledge.
+              With a background in B.Sc
+              Microbiology and Medical Coding,
+              along with professional BPO
+              experience, I bring strong
+              communication, problem-solving
+              and analytical skills into my
+              development journey.
             </p>
 
-            <button
-              className="voice-btn"
-              onClick={() =>
-                speakSection(
-                  "I am a passionate frontend developer who enjoys transforming ideas into clean, modern and responsive web applications. My technical journey includes HTML, CSS, JavaScript, React, TypeScript and Python. Along with technology, my educational background in Microbiology and Medical Coding gives me a unique combination of technical and healthcare knowledge."
-                )
-              }
-            >
-              <i className="bi bi-volume-up"></i>
-              Listen About Me
-            </button>
+            <p>
+              I enjoy creating responsive
+              websites and applications that
+              are simple to use, visually
+              engaging and meaningful.
+            </p>
+
+            {/* ONLY VOICE SECTION */}
+
+            <div className="voice-card">
+
+              <audio
+                ref={aboutAudioRef}
+                src="/Voice.mp3"
+                onEnded={handleAboutVoiceEnded}
+              />
+
+              <div className="voice-icon">
+                <i className="bi bi-mic-fill"></i>
+              </div>
+
+              <div className="voice-content">
+
+                <span>
+                  LISTEN TO MY INTRODUCTION
+                </span> <br />
+
+                <strong>
+                  My Voice
+                </strong>
+
+              </div>
+
+              <div className="voice-controls">
+
+                <button
+                  onClick={playAboutVoice}
+                  title="Play"
+                  className={
+                    isVoicePlaying &&
+                    !isVoicePaused
+                      ? "active"
+                      : ""
+                  }
+                >
+                  <i className="bi bi-play-fill"></i>
+                </button>
+
+                <button
+                  onClick={pauseAboutVoice}
+                  title="Pause"
+                  className={
+                    isVoicePaused
+                      ? "active"
+                      : ""
+                  }
+                >
+                  <i className="bi bi-pause-fill"></i>
+                </button>
+
+                <button
+                  onClick={stopAboutVoice}
+                  title="Stop"
+                >
+                  <i className="bi bi-stop-fill"></i>
+                </button>
+
+              </div>
+
+            </div>
+
           </div>
 
           <div className="about-card">
-            <div className="about-card-icon">
-              <i className="bi bi-person-workspace"></i>
+
+            <div className="about-card-top">
+
+              <span>WHAT I BRING</span>
+
+              <i className="bi bi-stars"></i>
+
             </div>
 
-            <h3>What I Bring</h3>
+            <div className="about-tags">
 
-            <p>
-              A combination of frontend development, healthcare
-              knowledge, communication skills and a continuous
-              learning mindset.
-            </p>
-
-            <div className="tag-container">
               <span>Frontend</span>
               <span>React</span>
               <span>TypeScript</span>
               <span>Medical Coding</span>
               <span>Python</span>
               <span>Communication</span>
+
             </div>
+
+            <div className="about-highlight">
+
+              <i className="bi bi-lightbulb-fill"></i>
+
+              <div>
+
+                <strong>
+                  Always learning.
+                </strong>
+
+                <p>
+                  Currently expanding my
+                  skills in Python and Full
+                  Stack Development.
+                </p>
+
+              </div>
+
+            </div>
+
           </div>
+
         </div>
+
       </section>
 
       {/* =========================================
           SKILLS
       ========================================= */}
 
-      <section className="section" id="skills">
+      <section
+        className="section"
+        id="skills"
+      >
+
         <div className="section-heading">
+
           <span>02</span>
 
           <div>
-            <p>MY EXPERTISE</p>
-            <h2>Skills</h2>
+            <p>MY SKILLS</p>
+
+            <h2>
+              Skills that turn ideas
+              <br />
+              into experiences.
+            </h2>
           </div>
+
         </div>
 
         <div className="skills-grid">
-          <div className="skills-card">
-            <div className="card-title">
-              <i className="bi bi-code-square"></i>
-              <h3>Frontend Development</h3>
-            </div>
 
-            <div className="skill-item">
-              <div className="skill-header">
-                <span>HTML</span>
-                <i className="bi bi-filetype-html"></i>
-              </div>
+          <div className="skill-card">
 
-              <div className="skill-bar">
-                <div className="skill-progress html-progress"></div>
-              </div>
+            <div className="skill-card-header">
 
-              <button
-                onClick={() =>
-                  speakSection(
-                    "HTML is used to structure web pages and their content."
-                  )
-                }
-              >
-                Why HTML?
-              </button>
-            </div>
-
-            <div className="skill-item">
-              <div className="skill-header">
-                <span>CSS</span>
-                <i className="bi bi-filetype-css"></i>
-              </div>
-
-              <div className="skill-bar">
-                <div className="skill-progress css-progress"></div>
-              </div>
-
-              <button
-                onClick={() =>
-                  speakSection(
-                    "CSS is used to style web pages, create layouts, animations and responsive designs."
-                  )
-                }
-              >
-                Why CSS?
-              </button>
-            </div>
-
-            <div className="skill-item">
-              <div className="skill-header">
-                <span>JavaScript</span>
-                <i className="bi bi-filetype-js"></i>
-              </div>
-
-              <div className="skill-bar">
-                <div className="skill-progress javascript-progress"></div>
-              </div>
-
-              <button
-                onClick={() =>
-                  speakSection(
-                    "JavaScript is used to add logic, dynamic behavior and interactivity to web applications."
-                  )
-                }
-              >
-                Why JavaScript?
-              </button>
-            </div>
-
-            <div className="skill-item">
-              <div className="skill-header">
-                <span>React</span>
+              <div className="skill-main-icon">
                 <i className="bi bi-code-square"></i>
               </div>
 
-              <div className="skill-bar">
-                <div className="skill-progress react-progress"></div>
+              <div>
+                <span>01 / FRONTEND</span>
+                <h3>
+                  Frontend Development
+                </h3>
               </div>
 
-              <button
-                onClick={() =>
-                  speakSection(
-                    "React helps developers build reusable components and dynamic user interfaces."
-                  )
-                }
-              >
-                Why React?
-              </button>
             </div>
 
-            <div className="skill-item">
-              <div className="skill-header">
-                <span>TypeScript</span>
-                <i className="bi bi-braces"></i>
+            <div className="skill-bars">
+
+              <div className="skill-item">
+                <div>
+                  <span>HTML</span>
+                  <b>90%</b>
+                </div>
+
+                <div className="skill-track">
+                  <span
+                    style={{
+                      width: "90%",
+                    }}
+                  ></span>
+                </div>
               </div>
 
-              <div className="skill-bar">
-                <div className="skill-progress typescript-progress"></div>
+              <div className="skill-item">
+                <div>
+                  <span>CSS</span>
+                  <b>88%</b>
+                </div>
+
+                <div className="skill-track">
+                  <span
+                    style={{
+                      width: "88%",
+                    }}
+                  ></span>
+                </div>
               </div>
 
-              <button
-                onClick={() =>
-                  speakSection(
-                    "TypeScript adds static typing to JavaScript and helps create more reliable applications."
-                  )
-                }
-              >
-                Why TypeScript?
-              </button>
+              <div className="skill-item">
+                <div>
+                  <span>JavaScript</span>
+                  <b>90%</b>
+                </div>
+
+                <div className="skill-track">
+                  <span
+                    style={{
+                      width: "90%",
+                    }}
+                  ></span>
+                </div>
+              </div>
+
+              <div className="skill-item">
+                <div>
+                  <span>React</span>
+                  <b>97%</b>
+                </div>
+
+                <div className="skill-track">
+                  <span
+                    style={{
+                      width: "97%",
+                    }}
+                  ></span>
+                </div>
+              </div>
+
+              <div className="skill-item">
+                <div>
+                  <span>TypeScript</span>
+                  <b>90%</b>
+                </div>
+
+                <div className="skill-track">
+                  <span
+                    style={{
+                      width: "90%",
+                    }}
+                  ></span>
+                </div>
+              </div>
+
             </div>
+
           </div>
 
-          <div className="skills-card">
-            <div className="card-title">
-              <i className="bi bi-tools"></i>
-              <h3>Tools &amp; Technologies</h3>
+          <div className="skill-card">
+
+            <div className="skill-card-header">
+
+              <div className="skill-main-icon">
+                <i className="bi bi-tools"></i>
+              </div>
+
+              <div>
+                <span>02 / TOOLS</span>
+
+                <h3>
+                  Tools &amp; Technologies
+                </h3>
+              </div>
+
             </div>
 
             <div className="tools-grid">
-              <button
-                onClick={() =>
-                  speakSection(
-                    "Visual Studio Code is a source code editor used for developing applications."
-                  )
-                }
-              >
-                <i className="bi bi-code-square"></i>
-                VS Code
-              </button>
 
-              <button
-                onClick={() =>
-                  speakSection(
-                    "Git is a version control system used to track code changes."
-                  )
-                }
-              >
+              <div>
+                <i className="bi bi-code-slash"></i>
+                <span>VS Code</span>
+              </div>
+
+              <div>
                 <i className="bi bi-git"></i>
-                Git
-              </button>
+                <span>Git</span>
+              </div>
 
-              <button
-                onClick={() =>
-                  speakSection(
-                    "GitHub is used to store, manage and collaborate on source code."
-                  )
-                }
-              >
+              <div>
                 <i className="bi bi-github"></i>
-                GitHub
-              </button>
+                <span>GitHub</span>
+              </div>
 
-              <button
-                onClick={() =>
-                  speakSection(
-                    "Figma is a design and prototyping tool used for creating user interface designs."
-                  )
-                }
-              >
-                <i className="bi bi-bezier2"></i>
-                Figma
-              </button>
+              <div>
+                <i className="bi bi-vector-pen"></i>
+                <span>Figma</span>
+              </div>
+
+              <div>
+                <i className="bi bi-cloud-check"></i>
+                <span>Vercel</span>
+              </div>
+
             </div>
 
             <div className="learning-box">
-              <span>Currently Learning</span>
-              <h4>Python &amp; Full Stack Development</h4>
-              <p>
-                Continuously improving my programming knowledge and
-                exploring modern technologies to become a stronger
-                full-stack developer.
-              </p>
+
+              <i className="bi bi-mortarboard-fill"></i>
+
+              <div>
+
+                <span>
+                  CURRENTLY LEARNING
+                </span> <br />
+
+                <strong>
+                  Python &amp; Full Stack Development
+                </strong>
+
+              </div>
+
             </div>
+
           </div>
+
         </div>
+
       </section>
 
       {/* =========================================
           PROJECTS
       ========================================= */}
 
-      <section className="section" id="projects">
+      <section
+        className="section"
+        id="projects"
+      >
+
         <div className="section-heading">
+
           <span>03</span>
 
           <div>
-            <p>MY RECENT WORK</p>
-            <h2>Projects</h2>
+
+            <p>MY PROJECTS</p>
+
+            <h2>
+              Selected work &amp;
+              <br />
+              creative builds.
+            </h2>
+
           </div>
+
         </div>
 
         <div className="projects-grid">
+
+          {/* GROCO */}
+
           <div className="project-card">
-            <span className="project-number">01</span>
+
+            <span className="project-number">
+              01
+            </span>
+
+            <div className="project-image">
+              <img
+                src="/gro.png"
+                alt="GroCo project"
+              />
+            </div>
 
             <div className="project-icon">
               <i className="bi bi-cart3"></i>
@@ -1022,8 +1287,8 @@ Sent from Asmina's Portfolio
             <h3>GroCo</h3>
 
             <p>
-              A modern grocery shopping website built with React
-              and TypeScript with product browsing, cart,
+              Modern grocery shopping website
+              with product browsing, cart,
               checkout and payment flow.
             </p>
 
@@ -1034,29 +1299,45 @@ Sent from Asmina's Portfolio
             </div>
 
             <button
-              className="project-link project-details-trigger"
+              className="project-link"
               onClick={() =>
-                openProjectDetails("groco")
+                openProject("groco")
               }
             >
               View Project
               <i className="bi bi-arrow-up-right"></i>
             </button>
+
           </div>
 
+          {/* HOPEHANDS */}
+
           <div className="project-card">
-            <span className="project-number">02</span>
+
+            <span className="project-number">
+              02
+            </span>
+
+            <div className="project-image">
+              <img
+                src="/char.png"
+                alt="HopeHands Foundation project"
+              />
+            </div>
 
             <div className="project-icon">
               <i className="bi bi-heart-pulse"></i>
             </div>
 
-            <h3>HopeHands Foundation</h3>
+            <h3>
+              HopeHands Foundation
+            </h3>
 
             <p>
-              A charity website designed to present causes,
-              volunteering opportunities, donations and community
-              impact in a clean responsive interface.
+              Charity website featuring
+              causes, donations, volunteering
+              opportunities and community
+              impact.
             </p>
 
             <div className="project-tech">
@@ -1066,18 +1347,31 @@ Sent from Asmina's Portfolio
             </div>
 
             <button
-              className="project-link project-details-trigger"
+              className="project-link"
               onClick={() =>
-                openProjectDetails("hopehands")
+                openProject("hopehands")
               }
             >
               View Project
               <i className="bi bi-arrow-up-right"></i>
             </button>
+
           </div>
 
+          {/* FOODFLOW */}
+
           <div className="project-card">
-            <span className="project-number">03</span>
+
+            <span className="project-number">
+              03
+            </span>
+
+            <div className="project-image">
+              <img
+                src="/food.png"
+                alt="FoodFlow project"
+              />
+            </div>
 
             <div className="project-icon">
               <i className="bi bi-phone"></i>
@@ -1086,9 +1380,9 @@ Sent from Asmina's Portfolio
             <h3>FoodFlow</h3>
 
             <p>
-              A food delivery mobile application concept built
-              with Expo and React Native with authentication,
-              cart and checkout experiences.
+              Food delivery mobile application
+              concept with authentication,
+              cart, address and checkout.
             </p>
 
             <div className="project-tech">
@@ -1098,178 +1392,310 @@ Sent from Asmina's Portfolio
             </div>
 
             <button
-              className="project-link project-details-trigger"
+              className="project-link"
               onClick={() =>
-                openProjectDetails("foodflow")
+                openProject("foodflow")
               }
             >
               View Project
               <i className="bi bi-arrow-up-right"></i>
             </button>
+
           </div>
+
+          {/* PHOTOGRAPHY */}
+
+          <div className="project-card">
+
+            <span className="project-number">
+              04
+            </span>
+
+            <div className="project-image">
+              <img
+                src="/photo.png"
+                alt="Photography Portfolio project"
+              />
+            </div>
+
+            <div className="project-icon">
+              <i className="bi bi-camera"></i>
+            </div>
+
+            <h3>
+              Photography Portfolio
+            </h3>
+
+            <p>
+              Stylish photography portfolio
+              website designed to showcase
+              photographs in a clean and
+              engaging layout.
+            </p>
+
+            <div className="project-tech">
+              <span>HTML</span>
+              <span>CSS</span>
+              <span>Bootstrap</span>
+              <span>JavaScript</span>
+            </div>
+
+            <button
+              className="project-link"
+              onClick={() =>
+                openProject("photography")
+              }
+            >
+              View Project
+              <i className="bi bi-arrow-up-right"></i>
+            </button>
+
+          </div>
+
         </div>
+
       </section>
 
       {/* =========================================
           EXPERIENCE
       ========================================= */}
 
-      <section className="section" id="experience">
+      <section
+        className="section"
+        id="experience"
+      >
+
         <div className="section-heading">
+
           <span>04</span>
 
           <div>
-            <p>MY JOURNEY</p>
-            <h2>Experience</h2>
+
+            <p>EXPERIENCE</p>
+
+            <h2>
+              Experience that
+              <br />
+              shapes my approach.
+            </h2>
+
           </div>
+
         </div>
 
         <div className="timeline">
+
           <div className="timeline-item">
-            <div className="timeline-dot"></div>
+
+            <div className="timeline-dot">
+              <i className="bi bi-briefcase-fill"></i>
+            </div>
 
             <div className="timeline-card">
-              <span className="timeline-date">
+
+              <span>
                 PROFESSIONAL EXPERIENCE
               </span>
 
-              <h3>Customer Service / BPO</h3>
+              <h3>
+                BPO / Customer Service
+              </h3>
 
-              <h4>Insuremile Insurance Company</h4>
+              <h4>
+                Insuremile Insurance Company
+              </h4>
 
               <p>
-                Worked in a professional BPO environment and
-                developed communication, customer handling,
-                problem-solving and teamwork skills.
+                Developed strong communication,
+                customer handling, documentation
+                and problem-solving skills through
+                professional experience.
               </p>
 
-              <div className="experience-tags">
-                <span>Communication</span>
-                <span>Customer Support</span>
-                <span>Teamwork</span>
-                <span>Problem Solving</span>
-              </div>
             </div>
+
           </div>
 
           <div className="timeline-item">
-            <div className="timeline-dot"></div>
+
+            <div className="timeline-dot">
+              <i className="bi bi-code-square"></i>
+            </div>
 
             <div className="timeline-card">
-              <span className="timeline-date">
+
+              <span>
                 CURRENT LEARNING
               </span>
 
-              <h3>Frontend &amp; Python Development</h3>
+              <h3>
+                Frontend &amp; Python Development
+              </h3>
 
-              <h4>Continuous Learning</h4>
+              <h4>
+                Continuous Skill Development
+              </h4>
 
               <p>
-                Building practical projects using React,
-                TypeScript, JavaScript, CSS and Python while
-                continuously improving my development skills.
+                Building practical projects using
+                React, TypeScript, JavaScript and
+                Python while improving my full-stack
+                development knowledge.
               </p>
 
-              <div className="experience-tags">
-                <span>React</span>
-                <span>TypeScript</span>
-                <span>Python</span>
-                <span>GitHub</span>
-              </div>
             </div>
+
           </div>
+
         </div>
+
       </section>
 
       {/* =========================================
           EDUCATION
       ========================================= */}
 
-      <section className="section" id="education">
+      <section
+        className="section"
+        id="education"
+      >
+
         <div className="section-heading">
+
           <span>05</span>
 
           <div>
-            <p>MY QUALIFICATIONS</p>
-            <h2>Education</h2>
+
+            <p>EDUCATION</p>
+
+            <h2>
+              Education &amp;
+              <br />
+              professional learning.
+            </h2>
+
           </div>
+
         </div>
 
         <div className="education-grid">
+
           <div className="education-card">
+
             <div className="education-icon">
-              <i className="bi bi-mortarboard"></i>
+              <i className="bi bi-mortarboard-fill"></i>
             </div>
 
             <span>2024</span>
 
-            <h3>B.Sc Microbiology</h3>
+            <h3>
+              B.Sc Microbiology
+            </h3>
 
             <p>
               Annamalai University
             </p>
+
+            <small>
+              Bachelor's Degree
+            </small>
+
           </div>
 
           <div className="education-card">
+
             <div className="education-icon">
-              <i className="bi bi-file-medical"></i>
+              <i className="bi bi-patch-check-fill"></i>
             </div>
 
-            <span>CERTIFICATION</span>
+            <span>
+              CERTIFICATION
+            </span>
 
-            <h3>Medical Coding</h3>
+            <h3>
+              Medical Coding
+            </h3>
 
             <p>
-              Medical Coding Certification
+              Professional Certification
             </p>
+
+            <small>
+              Medical Coding Training
+            </small>
+
           </div>
 
           <div className="education-card">
+
             <div className="education-icon">
               <i className="bi bi-laptop"></i>
             </div>
 
-            <span>TECHNICAL LEARNING</span>
+            <span>
+              CURRENT
+            </span>
 
-            <h3>Frontend Development</h3>
+            <h3>
+              Frontend Development
+            </h3>
 
             <p>
-              React, JavaScript, TypeScript, HTML &amp; CSS
+              Technical Learning
             </p>
+
+            <small>
+              React, TypeScript &amp; JavaScript
+            </small>
+
           </div>
+
         </div>
+
       </section>
 
       {/* =========================================
           DOCUMENTS
       ========================================= */}
 
-      <section className="section" id="documents">
+      <section
+        className="section"
+        id="documents"
+      >
+
         <div className="section-heading">
+
           <span>06</span>
 
           <div>
+
             <p>MY DOCUMENTS</p>
-            <h2>Certificates &amp; Resume</h2>
+
+            <h2>
+              Certificates &amp;
+              <br />
+              Resume
+            </h2>
+
           </div>
+
         </div>
 
-        <p className="documents-intro">
-          Explore my resume, degree certificate and medical coding
-          certificate.
-        </p>
-
         <div className="documents-grid">
+
+          {/* RESUME */}
+
           <div className="document-card">
-            <div className="document-preview resume-preview">
-              <i className="bi bi-file-earmark-pdf"></i>
 
-              <span>PDF DOCUMENT</span>
-
-              <h3>My Resume</h3>
+            <div className="document-image">
+              <img
+                src="/resumepdf.png"
+                alt="Asmina Parveen Resume"
+              />
             </div>
 
             <div className="document-content">
+
               <div className="document-icon">
                 <i className="bi bi-file-person"></i>
               </div>
@@ -1277,13 +1703,15 @@ Sent from Asmina's Portfolio
               <h3>Resume</h3>
 
               <p>
-                View my professional resume and download it for
-                future reference.
+                View my professional resume and
+                download it for future reference.
               </p>
 
               <button
                 className="document-btn"
-                onClick={() => openDocument("resume")}
+                onClick={() =>
+                  openDocument("resume")
+                }
               >
                 <i className="bi bi-eye"></i>
                 View Resume
@@ -1291,16 +1719,21 @@ Sent from Asmina's Portfolio
 
               <a
                 className="document-download-btn"
-                href="/Asmina_Resume.pdf"
-                download="Asmina_Resume.pdf"
+                href="/resume.png"
+                download="Asmina_Resume.png"
               >
                 <i className="bi bi-download"></i>
                 Download Resume
               </a>
+
             </div>
+
           </div>
 
+          {/* DEGREE */}
+
           <div className="document-card">
+
             <div className="document-image">
               <img
                 src="/convocation.png"
@@ -1309,20 +1742,25 @@ Sent from Asmina's Portfolio
             </div>
 
             <div className="document-content">
+
               <div className="document-icon">
-                <i className="bi bi-mortarboard"></i>
+                <i className="bi bi-mortarboard-fill"></i>
               </div>
 
-              <h3>Degree Certificate</h3>
+              <h3>
+                Degree Certificate
+              </h3>
 
               <p>
-                My degree certificate from my academic
-                qualification.
+                My B.Sc Microbiology degree
+                certificate.
               </p>
 
               <button
                 className="document-btn"
-                onClick={() => openDocument("degree")}
+                onClick={() =>
+                  openDocument("degree")
+                }
               >
                 <i className="bi bi-eye"></i>
                 View Certificate
@@ -1331,15 +1769,20 @@ Sent from Asmina's Portfolio
               <a
                 className="document-download-btn"
                 href="/degree.png"
-                download="degree.png"
+                download="Asmina_Degree.png"
               >
                 <i className="bi bi-download"></i>
-                Download Certificate
+                Download
               </a>
+
             </div>
+
           </div>
 
+          {/* MEDICAL */}
+
           <div className="document-card">
+
             <div className="document-image">
               <img
                 src="/coding.png"
@@ -1348,20 +1791,25 @@ Sent from Asmina's Portfolio
             </div>
 
             <div className="document-content">
+
               <div className="document-icon">
-                <i className="bi bi-file-medical"></i>
+                <i className="bi bi-heart-pulse-fill"></i>
               </div>
 
-              <h3>Medical Coding Certificate</h3>
+              <h3>
+                Medical Coding
+              </h3>
 
               <p>
-                My professional medical coding certification
-                supporting my healthcare knowledge.
+                My professional Medical Coding
+                certification.
               </p>
 
               <button
                 className="document-btn"
-                onClick={() => openDocument("medical")}
+                onClick={() =>
+                  openDocument("medical")
+                }
               >
                 <i className="bi bi-eye"></i>
                 View Certificate
@@ -1370,243 +1818,287 @@ Sent from Asmina's Portfolio
               <a
                 className="document-download-btn"
                 href="/medical.png"
-                download="medical.png"
+                download="Asmina_Medical_Coding.png"
               >
                 <i className="bi bi-download"></i>
-                Download Certificate
+                Download
               </a>
+
             </div>
+
           </div>
+
         </div>
+
       </section>
 
       {/* =========================================
           SERVICES
       ========================================= */}
 
-      <section className="section" id="services">
+      <section
+        className="section"
+        id="services"
+      >
+
         <div className="section-heading">
+
           <span>07</span>
 
           <div>
-            <p>WHAT I CAN DO</p>
-            <h2>Services</h2>
+
+            <p>WHAT I DO</p>
+
+            <h2>
+              Services I can
+              <br />
+              contribute to.
+            </h2>
+
           </div>
+
         </div>
 
         <div className="services-grid">
-          <button
-            className="service-card"
-            onClick={() =>
-              speakSection(
-                "Frontend Development uses HTML, CSS, JavaScript and React to build modern responsive websites."
-              )
-            }
-          >
-            <i className="bi bi-code-slash"></i>
 
-            <h3>Frontend Development</h3>
+          <div className="service-card">
 
-            <p>
-              Building modern, responsive and user-friendly
-              interfaces using HTML, CSS, JavaScript and React.
-            </p>
+            <div className="service-number">
+              01
+            </div>
 
-            <span>
-              Learn More
-              <i className="bi bi-arrow-right"></i>
-            </span>
-          </button>
+            <i className="bi bi-window-stack"></i>
 
-          <button
-            className="service-card"
-            onClick={() =>
-              speakSection(
-                "React Development helps create reusable components and dynamic web applications."
-              )
-            }
-          >
-            <i className="bi bi-react"></i>
-
-            <h3>React Development</h3>
+            <h3>
+              Frontend Development
+            </h3>
 
             <p>
-              Creating reusable React components and dynamic
-              interfaces for modern web applications.
+              Creating responsive and
+              user-friendly websites with modern
+              frontend technologies.
             </p>
 
-            <span>
-              Learn More
-              <i className="bi bi-arrow-right"></i>
-            </span>
-          </button>
+          </div>
 
-          <button
-            className="service-card"
-            onClick={() =>
-              speakSection(
-                "Responsive Web Design ensures websites work smoothly on desktops, tablets and mobile devices."
-              )
-            }
-          >
+          <div className="service-card">
+
+            <div className="service-number">
+              02
+            </div>
+
+            <i className="bi bi-code-square"></i>
+
+            <h3>
+              React Development
+            </h3>
+
+            <p>
+              Building reusable React components
+              and interactive application
+              interfaces.
+            </p>
+
+          </div>
+
+          <div className="service-card">
+
+            <div className="service-number">
+              03
+            </div>
+
             <i className="bi bi-phone"></i>
 
-            <h3>Responsive Web Design</h3>
+            <h3>
+              Responsive Web Design
+            </h3>
 
             <p>
-              Designing responsive layouts that work smoothly
-              across desktop, tablet and mobile devices.
+              Designing layouts that work smoothly
+              across desktop, tablet and mobile
+              devices.
             </p>
 
-            <span>
-              Learn More
-              <i className="bi bi-arrow-right"></i>
-            </span>
-          </button>
+          </div>
+
         </div>
+
       </section>
 
       {/* =========================================
           CONTACT
       ========================================= */}
 
-      <section className="section" id="contact">
+      <section
+        className="section contact-section"
+        id="contact"
+      >
+
         <div className="section-heading">
+
           <span>08</span>
 
           <div>
-            <p>LET'S CONNECT</p>
-            <h2>Contact</h2>
+
+            <p>GET IN TOUCH</p>
+
+            <h2>
+              Let's build something
+              <br />
+              meaningful together.
+            </h2>
+
           </div>
+
         </div>
 
         <div className="contact-grid">
-          <div className="contact-info">
-            <h3>
-              Let's build something{" "}
-              <span>great together.</span>
-            </h3>
 
-            <p>
-              Have a project, opportunity or question? Fill out
-              the form and send me a message.
+          <div className="contact-info">
+
+            <p className="contact-intro">
+              Have a project, opportunity or simply
+              want to connect? I'd love to hear from
+              you.
             </p>
 
-            <div className="contact-details">
-              <div className="contact-item">
-                <div className="contact-icon">
-                  <i className="bi bi-envelope"></i>
-                </div>
+            <div className="contact-item">
 
-                <div>
-                  <small>EMAIL</small>
-                  <p>asmiraseed15@gmail.com</p>
-                </div>
+              <div>
+                <i className="bi bi-envelope-fill"></i>
               </div>
 
-              <div className="contact-item">
-                <div className="contact-icon">
-                  <i className="bi bi-telephone"></i>
-                </div>
+              <section>
 
-                <div>
-                  <small>PHONE</small>
-                  <p>+91 93444 18518</p>
-                </div>
-              </div>
+                <span>EMAIL</span> <br />
 
-              <div className="contact-item">
-                <div className="contact-icon">
-                  <i className="bi bi-geo-alt"></i>
-                </div>
+                <a href="mailto:asmiraseed15@gmail.com">
+                  asmiraseed15@gmail.com
+                </a>
 
-                <div>
-                  <small>LOCATION</small>
-                  <p>Puducherry, India</p>
-                </div>
-              </div>
+              </section>
+
             </div>
+
+            <div className="contact-item">
+
+              <div>
+                <i className="bi bi-telephone-fill"></i>
+              </div>
+
+              <section>
+
+                <span>PHONE</span> <br />
+
+                <a href="tel:+919344418518">
+                  +91 93444 18518
+                </a>
+
+              </section>
+
+            </div>
+
+            <div className="contact-item">
+
+              <div>
+                <i className="bi bi-geo-alt-fill"></i>
+              </div>
+
+              <section>
+
+                <span>LOCATION</span>
+
+                <p>
+                  Puducherry, India
+                </p>
+
+              </section>
+
+            </div>
+
           </div>
 
           <form
             className="contact-form"
             onSubmit={handleContactSubmit}
           >
+
             <div className="form-row">
+
               <div className="form-group">
-                <label htmlFor="contact-name">
-                  Your Name
+
+                <label htmlFor="name">
+                  YOUR NAME
                 </label>
 
                 <input
-                  id="contact-name"
+                  id="name"
+                  name="name"
                   type="text"
                   placeholder="Enter your name"
-                  value={contactName}
-                  onChange={(e) =>
-                    setContactName(e.target.value)
-                  }
                 />
+
               </div>
 
               <div className="form-group">
-                <label htmlFor="contact-email">
-                  Email Address
+
+                <label htmlFor="email">
+                  EMAIL ADDRESS
                 </label>
 
                 <input
-                  id="contact-email"
+                  id="email"
+                  name="email"
                   type="email"
                   placeholder="Enter your email"
-                  value={contactEmail}
-                  onChange={(e) =>
-                    setContactEmail(e.target.value)
-                  }
                 />
+
               </div>
+
             </div>
 
             <div className="form-group">
-              <label htmlFor="contact-subject">
-                Subject
+
+              <label htmlFor="subject">
+                SUBJECT
               </label>
 
               <input
-                id="contact-subject"
+                id="subject"
+                name="subject"
                 type="text"
-                placeholder="Enter subject"
-                value={contactSubject}
-                onChange={(e) =>
-                  setContactSubject(e.target.value)
-                }
+                placeholder="What would you like to discuss?"
               />
+
             </div>
 
             <div className="form-group">
-              <label htmlFor="contact-message">
-                Message
+
+              <label htmlFor="message">
+                MESSAGE
               </label>
 
               <textarea
-                id="contact-message"
-                rows={7}
-                placeholder="Write your message..."
-                value={contactMessage}
-                onChange={(e) =>
-                  setContactMessage(e.target.value)
-                }
+                id="message"
+                name="message"
+                rows={6}
+                placeholder="Tell me about your project or opportunity..."
               ></textarea>
+
             </div>
 
             <button
               type="submit"
               className="submit-btn"
             >
-              <i className="bi bi-send"></i>
-              Submit Message
+              Send Message
+              <i className="bi bi-arrow-up-right"></i>
             </button>
+
           </form>
+
         </div>
+
       </section>
 
       {/* =========================================
@@ -1614,135 +2106,74 @@ Sent from Asmina's Portfolio
       ========================================= */}
 
       <footer className="footer">
-        <div className="footer-top">
+
+        <div className="footer-main">
+
           <div className="footer-brand">
-            <h2>
-              Asmina<span> Parveen</span>
-            </h2>
+
+            <h3>
+              Asmina<span>Parveen</span>
+            </h3>
 
             <p>
-              Frontend Developer &amp; Medical Coding
-              Professional creating meaningful digital
-              experiences.
+              Frontend Developer &amp; Medical
+              Coding Professional.
             </p>
+
           </div>
 
           <div className="footer-links">
-            <h3>Quick Links</h3>
 
             <a href="#home">Home</a>
             <a href="#about">About</a>
             <a href="#skills">Skills</a>
             <a href="#projects">Projects</a>
-            <a href="#experience">Experience</a>
-            <a href="#education">Education</a>
-            <a href="#documents">Documents</a>
-            <a href="#services">Services</a>
             <a href="#contact">Contact</a>
+
           </div>
 
           <div className="footer-social">
-            <h3>Follow Me</h3>
 
-            <div className="footer-social-icons">
-              <a
-                href="https://github.com/"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="GitHub"
-              >
-                <i className="bi bi-github"></i>
-              </a>
+            <a
+              href="https://github.com/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <i className="bi bi-github"></i>
+            </a>
 
-              <a
-                href="https://www.linkedin.com/"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="LinkedIn"
-              >
-                <i className="bi bi-linkedin"></i>
-              </a>
+            <a
+              href="https://www.linkedin.com/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <i className="bi bi-linkedin"></i>
+            </a>
 
-              <a
-                href="mailto:asmiraseed15@gmail.com"
-                aria-label="Email"
-              >
-                <i className="bi bi-envelope"></i>
-              </a>
-            </div>
+            <a href="mailto:asmiraseed15@gmail.com">
+              <i className="bi bi-envelope-fill"></i>
+            </a>
+
           </div>
+
         </div>
 
         <div className="footer-bottom">
-          <p>
-            © 2026 Asmina Parveen. All Rights Reserved.
-          </p>
 
-          <button
-            className="stop-voice-footer"
-            onClick={stopVoice}
-          >
-            <i className="bi bi-stop-circle"></i>
-            Stop Voice
-          </button>
+          <span>
+            © 2026 Asmina Parveen. All rights reserved.
+          </span>
+
+          <span>
+            Designed &amp; Built with React
+          </span>
+
         </div>
+
       </footer>
 
-      {/* =========================================
-          VOICE CONTROLLER
-      ========================================= */}
-
-      {isSpeaking && (
-        <div className="voice-controller">
-          <div className="voice-status">
-            <div className="voice-animation">
-              <span></span>
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-
-            <div>
-              <strong>AI Voice Assistant</strong>
-
-              <small>
-                {isPaused
-                  ? "Voice paused"
-                  : "Speaking..."}
-              </small>
-            </div>
-          </div>
-
-          <div className="voice-buttons">
-            <button
-              onClick={pauseVoice}
-              disabled={isPaused}
-              aria-label="Pause voice"
-            >
-              <i className="bi bi-pause-fill"></i>
-            </button>
-
-            <button
-              onClick={resumeVoice}
-              disabled={!isPaused}
-              aria-label="Resume voice"
-            >
-              <i className="bi bi-play-fill"></i>
-            </button>
-
-            <button
-              onClick={stopVoice}
-              aria-label="Stop voice"
-            >
-              <i className="bi bi-stop-fill"></i>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 export default App;
-
-
