@@ -812,13 +812,13 @@ function App() {
             </a>
 
             <a
-              href="https://www.linkedin.com/"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="LinkedIn"
-            >
-              <i className="bi bi-linkedin"></i>
-            </a>
+  href="https://www.linkedin.com/in/asmi-raseed-160320436/"
+  target="_blank"
+  rel="noreferrer"
+  aria-label="LinkedIn"
+>
+  <i className="bi bi-linkedin"></i>
+</a>
 
             <a
               href="mailto:asmiraseed15@gmail.com"
@@ -851,7 +851,7 @@ function App() {
 
               <div>
                 <strong>Frontend</strong>
-                <span>Development</span>
+                <span>Developer</span>
               </div>
 
             </div>
@@ -862,7 +862,7 @@ function App() {
 
               <div>
                 <strong>Medical</strong>
-                <span>Coding</span>
+                <span>Coder</span>
               </div>
 
             </div>
@@ -2143,12 +2143,13 @@ function App() {
             </a>
 
             <a
-              href="https://www.linkedin.com/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <i className="bi bi-linkedin"></i>
-            </a>
+  href="https://www.linkedin.com/in/asmi-raseed-160320436/"
+  target="_blank"
+  rel="noreferrer"
+  aria-label="LinkedIn"
+>
+  <i className="bi bi-linkedin"></i>
+</a>
 
             <a href="mailto:asmiraseed15@gmail.com">
               <i className="bi bi-envelope-fill"></i>
