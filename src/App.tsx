@@ -8,17 +8,16 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { jsPDF } from "jspdf";
+
+import {
+  getPortfolioContent,
+  submitContactMessage,
+  type PortfolioContent,
+  type Project,
+  type PortfolioDocument,
+} from "./api";
 
 type DocumentType = "resume" | "degree" | "medical" | null;
-
-type ProjectType =
-  | "groco"
-  | "hopehands"
-  | "foodflow"
-  | "photography"
-  | null;
-
 type Theme = "dark" | "light";
 
 type DocumentDetails = {
@@ -36,16 +35,61 @@ type ProjectDetails = {
   technologies: string[];
   features: string[];
   liveUrl: string;
+  githubUrl: string;
 };
 
 function App() {
+  /* =========================================
+     COMPLETE PORTFOLIO BACKEND CONNECTION
+  ========================================= */
+
+  const [portfolioData, setPortfolioData] =
+    useState<PortfolioContent | null>(null);
+
+  const [isPortfolioLoading, setIsPortfolioLoading] =
+    useState(true);
+
+  const [portfolioError, setPortfolioError] =
+    useState("");
+
+  useEffect(() => {
+    const fetchPortfolioContent = async () => {
+      try {
+        setIsPortfolioLoading(true);
+        setPortfolioError("");
+
+        const data = await getPortfolioContent();
+        setPortfolioData(data);
+      } catch (error) {
+        console.error("Portfolio API Error:", error);
+
+        setPortfolioError(
+          "Unable to load portfolio content. Please check whether the Django backend is running."
+        );
+      } finally {
+        setIsPortfolioLoading(false);
+      }
+    };
+
+    fetchPortfolioContent();
+  }, []);
+
+  // All portfolio content from Django
+  const profile = portfolioData?.profile;
+  const about = portfolioData?.about;
+  const projects = portfolioData?.projects ?? [];
+  const skills = portfolioData?.skills ?? [];
+  const experiences = portfolioData?.experiences ?? [];
+  const education = portfolioData?.education ?? [];
+  const documents = portfolioData?.documents ?? [];
+  const services = portfolioData?.services ?? [];
+
   /* =========================================
      THEME
   ========================================= */
 
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem("portfolio-theme");
-
     return savedTheme === "light" ? "light" : "dark";
   });
 
@@ -62,20 +106,15 @@ function App() {
 
   /* =========================================
      ABOUT ME VOICE
-     ONLY VOICE FEATURE IN THE PORTFOLIO
   ========================================= */
 
   const aboutAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  const [isVoicePlaying, setIsVoicePlaying] =
-    useState(false);
-
-  const [isVoicePaused, setIsVoicePaused] =
-    useState(false);
+  const [isVoicePlaying, setIsVoicePlaying] = useState(false);
+  const [isVoicePaused, setIsVoicePaused] = useState(false);
 
   const playAboutVoice = () => {
     const audio = aboutAudioRef.current;
-
     if (!audio) return;
 
     if (audio.ended) {
@@ -88,16 +127,14 @@ function App() {
         setIsVoicePlaying(true);
         setIsVoicePaused(false);
       })
-      .catch(() => {
-        alert(
-          "Unable to play the voice recording. Please make sure Voice.mp3 exists inside the public folder."
-        );
+      .catch((error) => {
+        console.error("Voice playback error:", error);
+        alert("Unable to play the voice recording.");
       });
   };
 
   const pauseAboutVoice = () => {
     const audio = aboutAudioRef.current;
-
     if (!audio) return;
 
     if (!audio.paused) {
@@ -109,12 +146,10 @@ function App() {
 
   const stopAboutVoice = () => {
     const audio = aboutAudioRef.current;
-
     if (!audio) return;
 
     audio.pause();
     audio.currentTime = 0;
-
     setIsVoicePlaying(false);
     setIsVoicePaused(false);
   };
@@ -126,14 +161,24 @@ function App() {
 
   /* =========================================
      DOCUMENTS
+     DJANGO BACKEND CONNECTION
   ========================================= */
 
   const [activeDocument, setActiveDocument] =
     useState<DocumentType>(null);
 
+  const getDocument = (
+    documentType: DocumentType
+  ): PortfolioDocument | undefined => {
+    if (!documentType) return undefined;
+
+    return documents.find(
+      (document) => document.document_type === documentType
+    );
+  };
+
   const openDocument = (documentType: DocumentType) => {
     stopAboutVoice();
-
     setActiveDocument(documentType);
 
     window.scrollTo({
@@ -144,62 +189,77 @@ function App() {
 
   const closeDocument = () => {
     stopAboutVoice();
-
     setActiveDocument(null);
 
     setTimeout(() => {
-      document
-        .getElementById("documents")
-        ?.scrollIntoView({
-          behavior: "smooth",
-        });
+      document.getElementById("documents")?.scrollIntoView({
+        behavior: "smooth",
+      });
     }, 100);
   };
 
-  const getDocumentDetails =
-    (): DocumentDetails | null => {
-      if (activeDocument === "resume") {
-        return {
-          title: "My Resume",
-          file: "/resume.png",
-          downloadName: "Asmina_Resume.png",
-          type: "image",
-        };
-      }
+  const activeDocumentData = getDocument(activeDocument);
 
-      if (activeDocument === "degree") {
-        return {
-          title: "Degree Certificate",
-          file: "/degree.png",
-          downloadName: "Asmina_Degree.png",
-          type: "image",
-        };
-      }
+  const documentDetails: DocumentDetails | null =
+    activeDocumentData?.file
+      ? {
+          title: activeDocumentData.title,
+          file: activeDocumentData.file,
+          downloadName: activeDocumentData.download_name,
+          type:
+            activeDocumentData.file_type === "pdf"
+              ? "pdf"
+              : "image",
+        }
+      : null;
 
-      if (activeDocument === "medical") {
-        return {
-          title: "Medical Coding Certificate",
-          file: "/medical.png",
-          downloadName: "Asmina_Medical_Coding.png",
-          type: "image",
-        };
-      }
-
-      return null;
-    };
-
-  const documentDetails = getDocumentDetails();
+  const resumeDocument = getDocument("resume");
 
   /* =========================================
      PROJECTS
+     DJANGO BACKEND CONNECTION
   ========================================= */
 
   const [activeProject, setActiveProject] =
-    useState<ProjectType>(null);
+    useState<Project | null>(null);
 
-  const openProject = (project: ProjectType) => {
+  const [currentProjectIndex, setCurrentProjectIndex] =
+    useState(0);
+
+  const goToPreviousProject = () => {
+    setCurrentProjectIndex((current) =>
+      current === 0 ? projects.length - 1 : current - 1
+    );
+  };
+
+  const goToNextProject = () => {
+    setCurrentProjectIndex((current) =>
+      current === projects.length - 1 ? 0 : current + 1
+    );
+  };
+
+  // Automatically change the gallery image every 3 seconds.
+  useEffect(() => {
+    if (projects.length <= 1 || activeProject) return;
+
+    const sliderInterval = window.setInterval(() => {
+      setCurrentProjectIndex((current) =>
+        current === projects.length - 1 ? 0 : current + 1
+      );
+    }, 3000);
+
+    return () => window.clearInterval(sliderInterval);
+  }, [projects.length, activeProject]);
+
+  // Keep selected index valid.
+  useEffect(() => {
+    if (currentProjectIndex >= projects.length) {
+      setCurrentProjectIndex(0);
+    }
+  }, [projects.length, currentProjectIndex]);
+
+  const openProject = (project: Project) => {
     stopAboutVoice();
-
     setActiveProject(project);
 
     window.scrollTo({
@@ -210,264 +270,184 @@ function App() {
 
   const closeProject = () => {
     stopAboutVoice();
-
     setActiveProject(null);
 
     setTimeout(() => {
-      document
-        .getElementById("projects")
-        ?.scrollIntoView({
-          behavior: "smooth",
-        });
+      document.getElementById("projects")?.scrollIntoView({
+        behavior: "smooth",
+      });
     }, 100);
   };
 
-  const getProjectDetails =
-    (): ProjectDetails | null => {
-      if (activeProject === "groco") {
-        return {
-          title: "GroCo",
-          icon: "bi-cart3",
-          image: "/gro.png",
-          description:
-            "A modern grocery shopping website built with React and TypeScript with product browsing, cart, checkout and payment flow.",
-          technologies: [
-            "React",
-            "TypeScript",
-            "CSS",
-          ],
-          features: [
-            "Product browsing",
-            "Product categories",
-            "Product details",
-            "Shopping cart",
-            "Quantity management",
-            "Coupon functionality",
-            "Checkout flow",
-            "Payment flow",
-            "Responsive design",
-          ],
-          liveUrl:
-            "https://groco-mu.vercel.app",
-        };
+  const getProjectIcon = (project: Project) => {
+    return project.icon || "bi-code-slash";
+  };
+
+  const getProjectImage = (project: Project) => {
+    return project.image || "/pro.png";
+  };
+
+  const projectDetails: ProjectDetails | null = activeProject
+    ? {
+        title: activeProject.title,
+        icon: getProjectIcon(activeProject),
+        image: getProjectImage(activeProject),
+        description: activeProject.description,
+        technologies: activeProject.technologies
+          .split(",")
+          .map((technology) => technology.trim())
+          .filter(Boolean),
+        features: activeProject.features || [],
+        liveUrl:
+          activeProject.live_url ||
+          activeProject.github_url ||
+          "",
+        githubUrl: activeProject.github_url || "",
       }
+    : null;
 
-      if (activeProject === "hopehands") {
-        return {
-          title: "HopeHands Foundation",
-          icon: "bi-heart-pulse",
-          image: "/char.png",
-          description:
-            "A charity website designed to present causes, volunteering opportunities, donations and community impact in a clean responsive interface.",
-          technologies: [
-            "React",
-            "TypeScript",
-            "CSS",
-          ],
-          features: [
-            "Responsive charity website",
-            "Causes section",
-            "Donation flow",
-            "Volunteer section",
-            "Volunteer form",
-            "Thank-you page",
-            "Impact section",
-            "Community stories",
-          ],
-          liveUrl:
-            "https://charity1-one.vercel.app/",
-        };
-      }
+  /* =========================================
+     SKILLS
+     DJANGO BACKEND CONNECTION
+  ========================================= */
 
-      if (activeProject === "foodflow") {
-        return {
-          title: "FoodFlow",
-          icon: "bi-phone",
-          image: "/food.png",
-          description:
-            "A food delivery mobile application concept built with Expo and React Native with authentication, cart and checkout experiences.",
-          technologies: [
-            "React Native",
-            "Expo",
-            "JavaScript",
-          ],
-          features: [
-            "Authentication",
-            "Login and signup",
-            "Food browsing",
-            "Shopping cart",
-            "Cart quantity management",
-            "Checkout",
-            "Address management",
-            "Payment selection",
-            "Mobile-friendly experience",
-          ],
-          liveUrl:
-            "https://github.com/",
-        };
-      }
+  const getSkillsByCategory = (category: string) => {
+    return skills.filter(
+      (skill) => skill.category === category
+    );
+  };
 
-      if (activeProject === "photography") {
-        return {
-          title: "Photography Portfolio",
-          icon: "bi-camera",
-          image: "/photo.png",
-          description:
-            "A stylish photography portfolio website created to showcase photographs through a clean, responsive and visually engaging interface.",
-          technologies: [
-            "HTML",
-            "CSS",
-            "Bootstrap",
-            "JavaScript",
-          ],
-          features: [
-            "Responsive photography portfolio",
-            "Modern landing page",
-            "Photography gallery",
-            "Bootstrap responsive layout",
-            "Image showcase",
-            "Interactive navigation",
-            "JavaScript functionality",
-            "Mobile-friendly design",
-          ],
-          liveUrl:
-            "https://github.com/",
-        };
-      }
+  const getSkillIcon = (
+    icon: string | null | undefined,
+    fallback: string
+  ) => {
+    if (!icon) return `bi ${fallback}`;
 
-      return null;
-    };
-
-  const projectDetails = getProjectDetails();
+    return icon.startsWith("bi ")
+      ? icon
+      : `bi ${icon}`;
+  };
 
   /* =========================================
      CONTACT FORM
+     DJANGO BACKEND CONNECTION
   ========================================= */
 
-  const handleContactSubmit = (
+  const handleContactSubmit = async (
     event: FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
 
     const form = event.currentTarget;
-
     const formData = new FormData(form);
 
-    const name = String(
-      formData.get("name") || ""
-    ).trim();
-
-    const email = String(
-      formData.get("email") || ""
-    ).trim();
-
-    const subject = String(
-      formData.get("subject") || ""
-    ).trim();
-
-    const message = String(
-      formData.get("message") || ""
-    ).trim();
+    const name = String(formData.get("name") || "").trim();
+    const email = String(formData.get("email") || "").trim();
+    const subject = String(formData.get("subject") || "").trim();
+    const message = String(formData.get("message") || "").trim();
 
     if (!name || !email || !subject || !message) {
       alert("Please fill in all the fields.");
       return;
     }
 
-    /* CREATE PDF */
-
-    const pdf = new jsPDF();
-
-    pdf.setFontSize(20);
-
-    pdf.text(
-      "Portfolio Contact Message",
-      20,
-      25
-    );
-
-    pdf.setFontSize(12);
-
-    pdf.text(
-      `Name: ${name}`,
-      20,
-      45
-    );
-
-    pdf.text(
-      `Email: ${email}`,
-      20,
-      55
-    );
-
-    pdf.text(
-      `Subject: ${subject}`,
-      20,
-      65
-    );
-
-    pdf.text(
-      "Message:",
-      20,
-      80
-    );
-
-    const messageLines =
-      pdf.splitTextToSize(
+    try {
+      const responseData = await submitContactMessage({
+        name,
+        email,
+        subject,
         message,
-        170
+      });
+
+      if (responseData?.email_sent === true) {
+        form.reset();
+
+        alert(
+          "Thank you! Your message has been sent successfully. I will get back to you soon."
+        );
+
+        return;
+      }
+
+      if (responseData?.email_sent === false) {
+        alert(
+          "Your message was saved, but email delivery failed. Please try again later."
+        );
+
+        return;
+      }
+
+      form.reset();
+      alert("Your message has been submitted successfully.");
+    } catch (error) {
+      console.error("Contact Submission Error:", error);
+
+      alert(
+        "Unable to send your message. Please check your connection and try again."
       );
-
-    pdf.text(
-      messageLines,
-      20,
-      90
-    );
-
-    pdf.save(
-      "portfolio-contact-message.pdf"
-    );
-
-    /* OPEN EMAIL */
-
-    const mailtoLink =
-      `mailto:asmiraseed15@gmail.com` +
-      `?subject=${encodeURIComponent(subject)}` +
-      `&body=${encodeURIComponent(
-        `Name: ${name}\nEmail: ${email}\n\n${message}`
-      )}`;
-
-    window.location.href = mailtoLink;
-
-    form.reset();
+    }
   };
 
   /* =========================================
-     DOCUMENT VIEWER
+     COMMON LOADING / ERROR
   ========================================= */
 
-  if (
-    activeDocument &&
-    documentDetails
-  ) {
+  if (isPortfolioLoading) {
     return (
       <div
         className={`portfolio ${
-          theme === "light"
-            ? "light-theme"
-            : "dark-theme"
+          theme === "light" ? "light-theme" : "dark-theme"
         }`}
       >
         <div className="aurora aurora-one"></div>
         <div className="aurora aurora-two"></div>
         <div className="aurora aurora-three"></div>
+        <div className="background-grid"></div>
 
+        <div className="projects-status">
+          Loading portfolio...
+        </div>
+      </div>
+    );
+  }
+
+  if (portfolioError) {
+    return (
+      <div
+        className={`portfolio ${
+          theme === "light" ? "light-theme" : "dark-theme"
+        }`}
+      >
+        <div className="aurora aurora-one"></div>
+        <div className="aurora aurora-two"></div>
+        <div className="aurora aurora-three"></div>
+        <div className="background-grid"></div>
+
+        <div className="projects-status">
+          {portfolioError}
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================================
+     DOCUMENT VIEWER
+  ========================================= */
+
+  if (activeDocument && documentDetails) {
+    return (
+      <div
+        className={`portfolio ${
+          theme === "light" ? "light-theme" : "dark-theme"
+        }`}
+      >
+        <div className="aurora aurora-one"></div>
+        <div className="aurora aurora-two"></div>
+        <div className="aurora aurora-three"></div>
         <div className="background-grid"></div>
 
         <div className="document-viewer">
-
           <div className="document-viewer-header">
-
             <button
               className="back-document-btn"
               onClick={closeDocument}
@@ -483,18 +463,14 @@ function App() {
             <a
               className="viewer-download-btn"
               href={documentDetails.file}
-              download={
-                documentDetails.downloadName
-              }
+              download={documentDetails.downloadName}
             >
               <i className="bi bi-download"></i>
               Download
             </a>
-
           </div>
 
           <div className="document-viewer-content">
-
             {documentDetails.type === "pdf" ? (
               <iframe
                 src={documentDetails.file}
@@ -506,9 +482,7 @@ function App() {
                 alt={documentDetails.title}
               />
             )}
-
           </div>
-
         </div>
       </div>
     );
@@ -518,28 +492,20 @@ function App() {
      PROJECT VIEWER
   ========================================= */
 
-  if (
-    activeProject &&
-    projectDetails
-  ) {
+  if (activeProject && projectDetails) {
     return (
       <div
         className={`portfolio ${
-          theme === "light"
-            ? "light-theme"
-            : "dark-theme"
+          theme === "light" ? "light-theme" : "dark-theme"
         }`}
       >
         <div className="aurora aurora-one"></div>
         <div className="aurora aurora-two"></div>
         <div className="aurora aurora-three"></div>
-
         <div className="background-grid"></div>
 
         <div className="project-viewer">
-
           <div className="project-viewer-header">
-
             <button
               className="back-document-btn"
               onClick={closeProject}
@@ -554,20 +520,20 @@ function App() {
 
             <a
               className="viewer-download-btn"
-              href={projectDetails.liveUrl}
+              href={
+                projectDetails.liveUrl ||
+                projectDetails.githubUrl
+              }
               target="_blank"
               rel="noreferrer"
             >
               <i className="bi bi-box-arrow-up-right"></i>
               View Project
             </a>
-
           </div>
 
           <div className="project-detail-content">
-
             <div className="project-detail-hero">
-
               <div className="project-detail-image">
                 <img
                   src={projectDetails.image}
@@ -576,88 +542,64 @@ function App() {
               </div>
 
               <div className="project-detail-info">
-
                 <div className="project-detail-icon">
-                  <i
-                    className={`bi ${projectDetails.icon}`}
-                  ></i>
+                  <i className={`bi ${projectDetails.icon}`}></i>
                 </div>
 
                 <span className="detail-label">
                   FEATURED PROJECT
                 </span>
 
-                <h1>
-                  {projectDetails.title}
-                </h1>
-
-                <p>
-                  {projectDetails.description}
-                </p>
+                <h1>{projectDetails.title}</h1>
+                <p>{projectDetails.description}</p>
 
                 <a
                   className="primary-btn"
-                  href={projectDetails.liveUrl}
+                  href={
+                    projectDetails.liveUrl ||
+                    projectDetails.githubUrl
+                  }
                   target="_blank"
                   rel="noreferrer"
                 >
-                  View Live Project
+                  View Project
                   <i className="bi bi-arrow-up-right"></i>
                 </a>
-
               </div>
-
             </div>
 
             <div className="project-detail-grid">
-
               <div className="detail-card">
-
                 <div className="detail-card-heading">
                   <i className="bi bi-code-slash"></i>
                   <h3>Technologies</h3>
                 </div>
 
                 <div className="technology-list">
-
-                  {projectDetails.technologies.map(
-                    (technology) => (
-                      <span key={technology}>
-                        {technology}
-                      </span>
-                    )
-                  )}
-
+                  {projectDetails.technologies.map((technology) => (
+                    <span key={technology}>{technology}</span>
+                  ))}
                 </div>
-
               </div>
 
               <div className="detail-card">
-
                 <div className="detail-card-heading">
                   <i className="bi bi-stars"></i>
                   <h3>Key Features</h3>
                 </div>
 
                 <ul className="feature-list">
-
-                  {projectDetails.features.map(
-                    (feature) => (
-                      <li key={feature}>
-                        <i className="bi bi-check-circle-fill"></i>
-                        {feature}
-                      </li>
-                    )
-                  )}
-
+                  {projectDetails.features.map((feature) => (
+                    <li key={feature}>
+                      <i className="bi bi-check-circle-fill"></i>
+                      {feature}
+                    </li>
+                  ))}
                 </ul>
-
               </div>
-
             </div>
 
             <div className="project-detail-actions">
-
               <button
                 className="secondary-btn"
                 onClick={closeProject}
@@ -668,18 +610,18 @@ function App() {
 
               <a
                 className="primary-btn"
-                href={projectDetails.liveUrl}
+                href={
+                  projectDetails.liveUrl ||
+                  projectDetails.githubUrl
+                }
                 target="_blank"
                 rel="noreferrer"
               >
                 View Project
                 <i className="bi bi-arrow-up-right"></i>
               </a>
-
             </div>
-
           </div>
-
         </div>
       </div>
     );
@@ -692,16 +634,12 @@ function App() {
   return (
     <div
       className={`portfolio ${
-        theme === "light"
-          ? "light-theme"
-          : "dark-theme"
+        theme === "light" ? "light-theme" : "dark-theme"
       }`}
     >
-
       <div className="aurora aurora-one"></div>
       <div className="aurora aurora-two"></div>
       <div className="aurora aurora-three"></div>
-
       <div className="background-grid"></div>
 
       <Navbar />
@@ -735,205 +673,144 @@ function App() {
           HERO
       ========================================= */}
 
-      <section
-        className="hero section"
-        id="home"
-      >
-
+      <section className="hero section" id="home">
         <div className="hero-content">
-
           <div className="availability">
             <span className="availability-dot"></span>
-            Available for opportunities
+            {profile?.availability_text}
           </div>
 
           <p className="hero-small-title">
-            HELLO, I'M
+            {profile?.greeting}
           </p>
 
           <h1>
-            Asmina <span>Parveen</span>
+            {profile?.name}
           </h1>
 
-          <h2>
-            Frontend Developer &amp;
-            <br />
-            Medical Coding Professional
-          </h2>
+          <h2>{profile?.role}</h2>
 
           <p className="hero-description">
-            I create clean, responsive and
-            user-friendly digital experiences
-            using HTML, CSS, JavaScript, React
-            and TypeScript, while bringing a
-            professional background in
-            Microbiology, Medical Coding and
-            customer service.
+            {profile?.hero_description}
           </p>
 
           <div className="hero-buttons">
-
-            <a
-              href="#projects"
-              className="primary-btn"
-            >
+            <a href="#projects" className="primary-btn">
               View My Work
               <i className="bi bi-arrow-up-right"></i>
             </a>
 
-            <a
-              href="#contact"
-              className="secondary-btn"
-            >
+            <a href="#contact" className="secondary-btn">
               Let's Connect
               <i className="bi bi-envelope"></i>
             </a>
 
-            <a
-              href="/resume.png"
-              download="Asmina_Resume.png"
-              className="resume-btn"
-            >
-              <i className="bi bi-download"></i>
-              Resume
-            </a>
-
+            {resumeDocument?.file && (
+              <a
+                href={resumeDocument.file}
+                download={resumeDocument.download_name}
+                className="resume-btn"
+              >
+                <i className="bi bi-download"></i>
+                Resume
+              </a>
+            )}
           </div>
 
           <div className="social-links">
+            {profile?.github_url && (
+              <a
+                href={profile.github_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub"
+              >
+                <i className="bi bi-github"></i>
+              </a>
+            )}
 
-            <a
-              href="https://github.com/"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="GitHub"
-            >
-              <i className="bi bi-github"></i>
-            </a>
+            {profile?.linkedin_url && (
+              <a
+                href={profile.linkedin_url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="LinkedIn"
+              >
+                <i className="bi bi-linkedin"></i>
+              </a>
+            )}
 
-            <a
-  href="https://www.linkedin.com/in/asmi-raseed-160320436/"
-  target="_blank"
-  rel="noreferrer"
-  aria-label="LinkedIn"
->
-  <i className="bi bi-linkedin"></i>
-</a>
-
-            <a
-              href="mailto:asmiraseed15@gmail.com"
-              aria-label="Email"
-            >
-              <i className="bi bi-envelope-fill"></i>
-            </a>
-
+            {profile?.email && (
+              <a
+                href={`mailto:${profile.email}`}
+                aria-label="Email"
+              >
+                <i className="bi bi-envelope-fill"></i>
+              </a>
+            )}
           </div>
-
         </div>
 
         <div className="hero-visual">
-
           <div className="hero-glow"></div>
 
           <div className="hero-image-wrapper">
-
             <div className="hero-image-border"></div>
 
             <img
-              src="/pro.png"
-              alt="Asmina Parveen"
+              src={profile?.profile_image || "/pro.png"}
+              alt={profile?.name || "Portfolio profile"}
               className="hero-image"
             />
 
             <div className="floating-card floating-card-one">
-
               <i className="bi bi-code-slash"></i>
-
               <div>
-                <strong>Frontend</strong>
+                <strong>
+                  {profile?.hero_card_one}
+                </strong>
                 <span>Developer</span>
               </div>
-
             </div>
 
             <div className="floating-card floating-card-two">
-
               <i className="bi bi-patch-check-fill"></i>
-
               <div>
-                <strong>Medical</strong>
-                <span>Coder</span>
+                <strong>
+                  {profile?.hero_card_two}
+                </strong>
+                <span>Professional</span>
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </section>
 
       {/* =========================================
           ABOUT
       ========================================= */}
 
-      <section
-        className="section about-section"
-        id="about"
-      >
-
+      <section className="section about-section" id="about">
         <div className="section-heading">
-
           <span>01</span>
-
           <div>
             <p>ABOUT ME</p>
-
             <h2>
-              Building digital
-              <br />
-              experiences with purpose.
+              {about?.heading || "About Me"}
             </h2>
           </div>
-
         </div>
 
         <div className="about-grid">
-
           <div className="about-text">
-
-            <p>
-              I am Asmina Parveen, a passionate
-              Frontend Developer and Medical
-              Coding Professional who enjoys
-              combining technology, creativity
-              and attention to detail.
-            </p>
-
-            <p>
-              With a background in B.Sc
-              Microbiology and Medical Coding,
-              along with professional BPO
-              experience, I bring strong
-              communication, problem-solving
-              and analytical skills into my
-              development journey.
-            </p>
-
-            <p>
-              I enjoy creating responsive
-              websites and applications that
-              are simple to use, visually
-              engaging and meaningful.
-            </p>
-
-            {/* ONLY VOICE SECTION */}
+            {(about?.paragraphs || []).map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))}
 
             <div className="voice-card">
-
               <audio
                 ref={aboutAudioRef}
-                src="/Voice.mp3"
+                src={about?.voice_audio || undefined}
                 onEnded={handleAboutVoiceEnded}
               />
 
@@ -942,28 +819,19 @@ function App() {
               </div>
 
               <div className="voice-content">
-
-                <span>
-                  LISTEN TO MY INTRODUCTION
-                </span> <br />
-
-                <strong>
-                  My Voice
-                </strong>
-
+                <span>{about?.voice_label}</span>
+                <br />
+                <strong>{about?.voice_title}</strong>
               </div>
 
               <div className="voice-controls">
-
                 <button
                   onClick={playAboutVoice}
                   title="Play"
                   className={
-                    isVoicePlaying &&
-                    !isVoicePaused
-                      ? "active"
-                      : ""
+                    isVoicePlaying && !isVoicePaused ? "active" : ""
                   }
+                  disabled={!about?.voice_audio}
                 >
                   <i className="bi bi-play-fill"></i>
                 </button>
@@ -971,11 +839,8 @@ function App() {
                 <button
                   onClick={pauseAboutVoice}
                   title="Pause"
-                  className={
-                    isVoicePaused
-                      ? "active"
-                      : ""
-                  }
+                  className={isVoicePaused ? "active" : ""}
+                  disabled={!about?.voice_audio}
                 >
                   <i className="bi bi-pause-fill"></i>
                 </button>
@@ -983,1108 +848,704 @@ function App() {
                 <button
                   onClick={stopAboutVoice}
                   title="Stop"
+                  disabled={!about?.voice_audio}
                 >
                   <i className="bi bi-stop-fill"></i>
                 </button>
-
               </div>
-
             </div>
-
           </div>
 
           <div className="about-card">
-
             <div className="about-card-top">
-
               <span>WHAT I BRING</span>
-
               <i className="bi bi-stars"></i>
-
             </div>
 
             <div className="about-tags">
-
-              <span>Frontend</span>
-              <span>React</span>
-              <span>TypeScript</span>
-              <span>Medical Coding</span>
-              <span>Python</span>
-              <span>Communication</span>
-
+              {(about?.tags || []).map((tag, index) => (
+                <span key={index}>{tag}</span>
+              ))}
             </div>
 
             <div className="about-highlight">
-
               <i className="bi bi-lightbulb-fill"></i>
-
               <div>
-
-                <strong>
-                  Always learning.
-                </strong>
-
-                <p>
-                  Currently expanding my
-                  skills in Python and Full
-                  Stack Development.
-                </p>
-
+                <strong>{about?.learning_heading}</strong>
+                <p>{about?.learning_text}</p>
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </section>
 
       {/* =========================================
           SKILLS
       ========================================= */}
 
-      <section
-        className="section"
-        id="skills"
-      >
-
+      <section className="section" id="skills">
         <div className="section-heading">
-
           <span>02</span>
-
           <div>
             <p>MY SKILLS</p>
-
             <h2>
               Skills that turn ideas
               <br />
               into experiences.
             </h2>
           </div>
-
         </div>
 
         <div className="skills-grid">
+          {/* FRONTEND */}
 
           <div className="skill-card">
-
             <div className="skill-card-header">
-
               <div className="skill-main-icon">
                 <i className="bi bi-code-square"></i>
               </div>
-
               <div>
                 <span>01 / FRONTEND</span>
-                <h3>
-                  Frontend Development
-                </h3>
+                <h3>Frontend Development</h3>
               </div>
-
             </div>
 
             <div className="skill-bars">
+              {getSkillsByCategory("Frontend").map((skill) => {
+                const proficiency = Math.min(
+                  100,
+                  Math.max(0, skill.proficiency)
+                );
 
-              <div className="skill-item">
-                <div>
-                  <span>HTML</span>
-                  <b>90%</b>
-                </div>
+                return (
+                  <div className="skill-item" key={skill.id}>
+                    <div>
+                      <span>{skill.name}</span>
+                      <b>{proficiency}%</b>
+                    </div>
 
-                <div className="skill-track">
-                  <span
-                    style={{
-                      width: "90%",
-                    }}
-                  ></span>
-                </div>
-              </div>
-
-              <div className="skill-item">
-                <div>
-                  <span>CSS</span>
-                  <b>88%</b>
-                </div>
-
-                <div className="skill-track">
-                  <span
-                    style={{
-                      width: "88%",
-                    }}
-                  ></span>
-                </div>
-              </div>
-
-              <div className="skill-item">
-                <div>
-                  <span>JavaScript</span>
-                  <b>90%</b>
-                </div>
-
-                <div className="skill-track">
-                  <span
-                    style={{
-                      width: "90%",
-                    }}
-                  ></span>
-                </div>
-              </div>
-
-              <div className="skill-item">
-                <div>
-                  <span>React</span>
-                  <b>97%</b>
-                </div>
-
-                <div className="skill-track">
-                  <span
-                    style={{
-                      width: "97%",
-                    }}
-                  ></span>
-                </div>
-              </div>
-
-              <div className="skill-item">
-                <div>
-                  <span>TypeScript</span>
-                  <b>90%</b>
-                </div>
-
-                <div className="skill-track">
-                  <span
-                    style={{
-                      width: "90%",
-                    }}
-                  ></span>
-                </div>
-              </div>
-
+                    <div className="skill-track">
+                      <span
+                        style={{
+                          width: `${proficiency}%`,
+                        }}
+                      ></span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-
           </div>
 
+          {/* BACKEND */}
+
           <div className="skill-card">
-
             <div className="skill-card-header">
-
               <div className="skill-main-icon">
-                <i className="bi bi-tools"></i>
+                <i className="bi bi-server"></i>
               </div>
-
               <div>
-                <span>02 / TOOLS</span>
-
-                <h3>
-                  Tools &amp; Technologies
-                </h3>
+                <span>02 / BACKEND</span>
+                <h3>Backend Development</h3>
               </div>
-
             </div>
 
             <div className="tools-grid">
+              {getSkillsByCategory("Backend").map((skill) => (
+                <div key={skill.id}>
+                  <i className={getSkillIcon(skill.icon, "bi-code-slash")}></i>
+                  <span>{skill.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-              <div>
-                <i className="bi bi-code-slash"></i>
-                <span>VS Code</span>
+          {/* DATABASE */}
+
+          <div className="skill-card">
+            <div className="skill-card-header">
+              <div className="skill-main-icon">
+                <i className="bi bi-database-fill"></i>
               </div>
-
               <div>
-                <i className="bi bi-git"></i>
-                <span>Git</span>
+                <span>03 / DATABASE</span>
+                <h3>Database Management</h3>
               </div>
+            </div>
 
+            <div className="tools-grid">
+              {getSkillsByCategory("Database").map((skill) => (
+                <div key={skill.id}>
+                  <i className={getSkillIcon(skill.icon, "bi-database")}></i>
+                  <span>{skill.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* AI AND MACHINE LEARNING */}
+
+          <div className="skill-card">
+            <div className="skill-card-header">
+              <div className="skill-main-icon">
+                <i className="bi bi-robot"></i>
+              </div>
               <div>
-                <i className="bi bi-github"></i>
-                <span>GitHub</span>
+                <span>04 / AI &amp; MACHINE LEARNING</span>
+                <h3>AI &amp; GenAI Technologies</h3>
               </div>
+            </div>
 
+            <div className="tools-grid">
+              {getSkillsByCategory("AI & Machine Learning").map(
+                (skill) => (
+                  <div key={skill.id}>
+                    <i className={getSkillIcon(skill.icon, "bi-cpu")}></i>
+                    <span>{skill.name}</span>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+
+          {/* TOOLS AND DEPLOYMENT */}
+
+          <div className="skill-card">
+            <div className="skill-card-header">
+              <div className="skill-main-icon">
+                <i className="bi bi-cloud-arrow-up"></i>
+              </div>
               <div>
-                <i className="bi bi-vector-pen"></i>
-                <span>Figma</span>
+                <span>05 / TOOLS &amp; DEPLOYMENT</span>
+                <h3>Tools &amp; Technologies</h3>
               </div>
+            </div>
 
-              <div>
-                <i className="bi bi-cloud-check"></i>
-                <span>Vercel</span>
-              </div>
-
+            <div className="tools-grid">
+              {getSkillsByCategory("Tools & Deployment").map(
+                (skill) => (
+                  <div key={skill.id}>
+                    <i className={getSkillIcon(skill.icon, "bi-code-slash")}></i>
+                    <span>{skill.name}</span>
+                  </div>
+                )
+              )}
             </div>
 
             <div className="learning-box">
-
               <i className="bi bi-mortarboard-fill"></i>
-
               <div>
-
-                <span>
-                  CURRENTLY LEARNING
-                </span> <br />
-
+                <span>CURRENTLY LEARNING</span>
+                <br />
                 <strong>
-                  Python &amp; Full Stack Development
+                  {about?.learning_text}
                 </strong>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </section>
 
       {/* =========================================
           PROJECTS
       ========================================= */}
 
-      <section
-        className="section"
-        id="projects"
-      >
-
+      <section className="section" id="projects">
         <div className="section-heading">
-
           <span>03</span>
-
           <div>
-
             <p>MY PROJECTS</p>
-
             <h2>
               Selected work &amp;
               <br />
               creative builds.
             </h2>
-
           </div>
-
         </div>
 
-        <div className="projects-grid">
-
-          {/* GROCO */}
-
-          <div className="project-card">
-
-            <span className="project-number">
-              01
-            </span>
-
-            <div className="project-image">
-              <img
-                src="/gro.png"
-                alt="GroCo project"
-              />
-            </div>
-
-            <div className="project-icon">
-              <i className="bi bi-cart3"></i>
-            </div>
-
-            <h3>GroCo</h3>
-
-            <p>
-              Modern grocery shopping website
-              with product browsing, cart,
-              checkout and payment flow.
+        <div className="project-carousel">
+          {projects.length === 0 && (
+            <p className="projects-status">
+              No projects available yet.
             </p>
+          )}
 
-            <div className="project-tech">
-              <span>React</span>
-              <span>TypeScript</span>
-              <span>CSS</span>
-            </div>
+          {projects.length > 0 && (
+            <>
+              <div
+                className="project-cards-grid"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: "28px",
+                  width: "100%",
+                  alignItems: "stretch",
+                }}
+              >
+                {projects.map((project, index) => (
+                  <div className="project-card" key={project.id}>
+                    <span className="project-number">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
 
-            <button
-              className="project-link"
-              onClick={() =>
-                openProject("groco")
-              }
-            >
-              View Project
-              <i className="bi bi-arrow-up-right"></i>
-            </button>
+                    <div className="project-image">
+                      <img
+                        src={getProjectImage(project)}
+                        alt={`${project.title} project`}
+                      />
+                    </div>
 
-          </div>
+                    <div className="project-icon">
+                      <i className={`bi ${getProjectIcon(project)}`}></i>
+                    </div>
 
-          {/* HOPEHANDS */}
+                    <h3>{project.title}</h3>
+                    <p>{project.description}</p>
 
-          <div className="project-card">
+                    <div className="project-tech">
+                      {project.technologies
+                        .split(",")
+                        .map((technology) => technology.trim())
+                        .filter(Boolean)
+                        .map((technology) => (
+                          <span key={technology}>{technology}</span>
+                        ))}
+                    </div>
 
-            <span className="project-number">
-              02
-            </span>
+                    <button
+                      className="project-link"
+                      onClick={() => openProject(project)}
+                    >
+                      View Project
+                      <i className="bi bi-arrow-up-right"></i>
+                    </button>
+                  </div>
+                ))}
+              </div>
 
-            <div className="project-image">
-              <img
-                src="/char.png"
-                alt="HopeHands Foundation project"
-              />
-            </div>
+              {/* PROJECT IMAGE SLIDER */}
 
-            <div className="project-icon">
-              <i className="bi bi-heart-pulse"></i>
-            </div>
+              <div
+                className="project-image-gallery"
+                style={{
+                  width: "100%",
+                  margin: "70px auto 0",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ marginBottom: "24px" }}>
+                  <span
+                    style={{
+                      display: "block",
+                      color: "#a78bfa",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      letterSpacing: "3px",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    PROJECT GALLERY
+                  </span>
 
-            <h3>
-              HopeHands Foundation
-            </h3>
+                  <h3
+                    style={{
+                      fontSize: "25px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    A glimpse of my work
+                  </h3>
+                </div>
 
-            <p>
-              Charity website featuring
-              causes, donations, volunteering
-              opportunities and community
-              impact.
-            </p>
+                <div
+                  className="project-image-gallery-stage"
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    maxWidth: "1050px",
+                    height: "440px",
+                    margin: "0 auto",
+                    overflow: "hidden",
+                    borderRadius: "22px",
+                    background: "rgba(255,255,255,0.04)",
+                  }}
+                >
+                  <img
+                    key={projects[currentProjectIndex].id}
+                    src={getProjectImage(projects[currentProjectIndex])}
+                    alt={`${projects[currentProjectIndex].title} project preview`}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      borderRadius: "22px",
+                      animation: "projectImageFade 0.6s ease",
+                    }}
+                  />
 
-            <div className="project-tech">
-              <span>React</span>
-              <span>TypeScript</span>
-              <span>CSS</span>
-            </div>
+                  <button
+                    type="button"
+                    className="project-slider-arrow"
+                    onClick={goToPreviousProject}
+                    aria-label="Previous project image"
+                    title="Previous image"
+                    style={{
+                      position: "absolute",
+                      left: "18px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      zIndex: 2,
+                    }}
+                  >
+                    <i className="bi bi-chevron-left"></i>
+                  </button>
 
-            <button
-              className="project-link"
-              onClick={() =>
-                openProject("hopehands")
-              }
-            >
-              View Project
-              <i className="bi bi-arrow-up-right"></i>
-            </button>
+                  <button
+                    type="button"
+                    className="project-slider-arrow"
+                    onClick={goToNextProject}
+                    aria-label="Next project image"
+                    title="Next image"
+                    style={{
+                      position: "absolute",
+                      right: "18px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      zIndex: 2,
+                    }}
+                  >
+                    <i className="bi bi-chevron-right"></i>
+                  </button>
+                </div>
 
-          </div>
-
-          {/* FOODFLOW */}
-
-          <div className="project-card">
-
-            <span className="project-number">
-              03
-            </span>
-
-            <div className="project-image">
-              <img
-                src="/food.png"
-                alt="FoodFlow project"
-              />
-            </div>
-
-            <div className="project-icon">
-              <i className="bi bi-phone"></i>
-            </div>
-
-            <h3>FoodFlow</h3>
-
-            <p>
-              Food delivery mobile application
-              concept with authentication,
-              cart, address and checkout.
-            </p>
-
-            <div className="project-tech">
-              <span>React Native</span>
-              <span>Expo</span>
-              <span>JavaScript</span>
-            </div>
-
-            <button
-              className="project-link"
-              onClick={() =>
-                openProject("foodflow")
-              }
-            >
-              View Project
-              <i className="bi bi-arrow-up-right"></i>
-            </button>
-
-          </div>
-
-          {/* PHOTOGRAPHY */}
-
-          <div className="project-card">
-
-            <span className="project-number">
-              04
-            </span>
-
-            <div className="project-image">
-              <img
-                src="/photo.png"
-                alt="Photography Portfolio project"
-              />
-            </div>
-
-            <div className="project-icon">
-              <i className="bi bi-camera"></i>
-            </div>
-
-            <h3>
-              Photography Portfolio
-            </h3>
-
-            <p>
-              Stylish photography portfolio
-              website designed to showcase
-              photographs in a clean and
-              engaging layout.
-            </p>
-
-            <div className="project-tech">
-              <span>HTML</span>
-              <span>CSS</span>
-              <span>Bootstrap</span>
-              <span>JavaScript</span>
-            </div>
-
-            <button
-              className="project-link"
-              onClick={() =>
-                openProject("photography")
-              }
-            >
-              View Project
-              <i className="bi bi-arrow-up-right"></i>
-            </button>
-
-          </div>
-
+                <div
+                  className="project-slider-dots"
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "9px",
+                    marginTop: "22px",
+                  }}
+                >
+                  {projects.map((project, index) => (
+                    <button
+                      type="button"
+                      key={project.id}
+                      className={`project-slider-dot ${
+                        index === currentProjectIndex ? "active" : ""
+                      }`}
+                      onClick={() => setCurrentProjectIndex(index)}
+                      aria-label={`Show image ${index + 1}`}
+                      title={`Project image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
-
       </section>
 
       {/* =========================================
           EXPERIENCE
       ========================================= */}
 
-      <section
-        className="section"
-        id="experience"
-      >
-
+      <section className="section" id="experience">
         <div className="section-heading">
-
           <span>04</span>
-
           <div>
-
             <p>EXPERIENCE</p>
-
             <h2>
               Experience that
               <br />
               shapes my approach.
             </h2>
-
           </div>
-
         </div>
 
         <div className="timeline">
+          {experiences.map((experience, index) => (
+            <div className="timeline-item" key={experience.id}>
+              <div className="timeline-dot">
+                <i
+                  className={
+                    index === 0
+                      ? "bi bi-briefcase-fill"
+                      : "bi bi-code-square"
+                  }
+                ></i>
+              </div>
 
-          <div className="timeline-item">
-
-            <div className="timeline-dot">
-              <i className="bi bi-briefcase-fill"></i>
+              <div className="timeline-card">
+                <span>{experience.section_label}</span>
+                <h3>{experience.title}</h3>
+                <h4>{experience.organization}</h4>
+                <p>{experience.description}</p>
+                {experience.period && (
+                  <small>{experience.period}</small>
+                )}
+              </div>
             </div>
-
-            <div className="timeline-card">
-
-              <span>
-                PROFESSIONAL EXPERIENCE
-              </span>
-
-              <h3>
-                BPO / Customer Service
-              </h3>
-
-              <h4>
-                Insuremile Insurance Company
-              </h4>
-
-              <p>
-                Developed strong communication,
-                customer handling, documentation
-                and problem-solving skills through
-                professional experience.
-              </p>
-
-            </div>
-
-          </div>
-
-          <div className="timeline-item">
-
-            <div className="timeline-dot">
-              <i className="bi bi-code-square"></i>
-            </div>
-
-            <div className="timeline-card">
-
-              <span>
-                CURRENT LEARNING
-              </span>
-
-              <h3>
-                Frontend &amp; Python Development
-              </h3>
-
-              <h4>
-                Continuous Skill Development
-              </h4>
-
-              <p>
-                Building practical projects using
-                React, TypeScript, JavaScript and
-                Python while improving my full-stack
-                development knowledge.
-              </p>
-
-            </div>
-
-          </div>
-
+          ))}
         </div>
-
       </section>
 
       {/* =========================================
           EDUCATION
       ========================================= */}
 
-      <section
-        className="section"
-        id="education"
-      >
-
+      <section className="section" id="education">
         <div className="section-heading">
-
           <span>05</span>
-
           <div>
-
-            <p>EDUCATION</p>
-
+            <p>EDUCATION &amp; LEARNING</p>
             <h2>
-              Education &amp;
+              My educational
               <br />
-              professional learning.
+              background.
             </h2>
-
           </div>
-
         </div>
 
         <div className="education-grid">
+          {education.map((item) => (
+            <div className="education-card" key={item.id}>
+              <div className="education-icon">
+                <i className={`bi ${item.icon || "bi-mortarboard-fill"}`}></i>
+              </div>
 
-          <div className="education-card">
+              <span>{item.category}</span>
+              <h3>{item.title}</h3>
+              <p>{item.institution}</p>
+              <small>{item.year}</small>
 
-            <div className="education-icon">
-              <i className="bi bi-mortarboard-fill"></i>
+              {item.details && (
+                <small>{item.details}</small>
+              )}
             </div>
-
-            <span>2024</span>
-
-            <h3>
-              B.Sc Microbiology
-            </h3>
-
-            <p>
-              Annamalai University
-            </p>
-
-            <small>
-              Bachelor's Degree
-            </small>
-
-          </div>
-
-          <div className="education-card">
-
-            <div className="education-icon">
-              <i className="bi bi-patch-check-fill"></i>
-            </div>
-
-            <span>
-              CERTIFICATION
-            </span>
-
-            <h3>
-              Medical Coding
-            </h3>
-
-            <p>
-              Professional Certification
-            </p>
-
-            <small>
-              Medical Coding Training
-            </small>
-
-          </div>
-
-          <div className="education-card">
-
-            <div className="education-icon">
-              <i className="bi bi-laptop"></i>
-            </div>
-
-            <span>
-              CURRENT
-            </span>
-
-            <h3>
-              Frontend Development
-            </h3>
-
-            <p>
-              Technical Learning
-            </p>
-
-            <small>
-              React, TypeScript &amp; JavaScript
-            </small>
-
-          </div>
-
+          ))}
         </div>
-
       </section>
 
       {/* =========================================
           DOCUMENTS
       ========================================= */}
 
-      <section
-        className="section"
-        id="documents"
-      >
-
+      <section className="section" id="documents">
         <div className="section-heading">
-
           <span>06</span>
-
           <div>
-
             <p>MY DOCUMENTS</p>
-
             <h2>
               Certificates &amp;
               <br />
               Resume
             </h2>
-
           </div>
-
         </div>
 
         <div className="documents-grid">
-
-          {/* RESUME */}
-
-          <div className="document-card">
-
-            <div className="document-image">
-              <img
-                src="/resumepdf.png"
-                alt="Asmina Parveen Resume"
-              />
-            </div>
-
-            <div className="document-content">
-
-              <div className="document-icon">
-                <i className="bi bi-file-person"></i>
+          {documents.map((item) => (
+            <div className="document-card" key={item.id}>
+              <div className="document-image">
+                {item.preview_image && (
+                  <img
+                    src={item.preview_image}
+                    alt={item.title}
+                  />
+                )}
               </div>
 
-              <h3>Resume</h3>
+              <div className="document-content">
+                <div className="document-icon">
+                  <i
+                    className={
+                      item.document_type === "resume"
+                        ? "bi bi-file-person"
+                        : item.document_type === "degree"
+                        ? "bi bi-mortarboard-fill"
+                        : "bi bi-heart-pulse-fill"
+                    }
+                  ></i>
+                </div>
 
-              <p>
-                View my professional resume and
-                download it for future reference.
-              </p>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
 
-              <button
-                className="document-btn"
-                onClick={() =>
-                  openDocument("resume")
-                }
-              >
-                <i className="bi bi-eye"></i>
-                View Resume
-              </button>
+                <button
+                  className="document-btn"
+                  onClick={() => openDocument(item.document_type)}
+                  disabled={!item.file}
+                >
+                  <i className="bi bi-eye"></i>
+                  View {item.document_type === "resume" ? "Resume" : "Certificate"}
+                </button>
 
-              <a
-                className="document-download-btn"
-                href="/resume.png"
-                download="Asmina_Resume.png"
-              >
-                <i className="bi bi-download"></i>
-                Download Resume
-              </a>
-
-            </div>
-
-          </div>
-
-          {/* DEGREE */}
-
-          <div className="document-card">
-
-            <div className="document-image">
-              <img
-                src="/convocation.png"
-                alt="Degree Certificate"
-              />
-            </div>
-
-            <div className="document-content">
-
-              <div className="document-icon">
-                <i className="bi bi-mortarboard-fill"></i>
+                {item.file && (
+                  <a
+                    className="document-download-btn"
+                    href={item.file}
+                    download={item.download_name}
+                  >
+                    <i className="bi bi-download"></i>
+                    Download
+                  </a>
+                )}
               </div>
-
-              <h3>
-                Degree Certificate
-              </h3>
-
-              <p>
-                My B.Sc Microbiology degree
-                certificate.
-              </p>
-
-              <button
-                className="document-btn"
-                onClick={() =>
-                  openDocument("degree")
-                }
-              >
-                <i className="bi bi-eye"></i>
-                View Certificate
-              </button>
-
-              <a
-                className="document-download-btn"
-                href="/degree.png"
-                download="Asmina_Degree.png"
-              >
-                <i className="bi bi-download"></i>
-                Download
-              </a>
-
             </div>
-
-          </div>
-
-          {/* MEDICAL */}
-
-          <div className="document-card">
-
-            <div className="document-image">
-              <img
-                src="/coding.png"
-                alt="Medical Coding Certificate"
-              />
-            </div>
-
-            <div className="document-content">
-
-              <div className="document-icon">
-                <i className="bi bi-heart-pulse-fill"></i>
-              </div>
-
-              <h3>
-                Medical Coding
-              </h3>
-
-              <p>
-                My professional Medical Coding
-                certification.
-              </p>
-
-              <button
-                className="document-btn"
-                onClick={() =>
-                  openDocument("medical")
-                }
-              >
-                <i className="bi bi-eye"></i>
-                View Certificate
-              </button>
-
-              <a
-                className="document-download-btn"
-                href="/medical.png"
-                download="Asmina_Medical_Coding.png"
-              >
-                <i className="bi bi-download"></i>
-                Download
-              </a>
-
-            </div>
-
-          </div>
-
+          ))}
         </div>
-
       </section>
 
       {/* =========================================
           SERVICES
       ========================================= */}
 
-      <section
-        className="section"
-        id="services"
-      >
-
+      <section className="section" id="services">
         <div className="section-heading">
-
           <span>07</span>
-
           <div>
-
             <p>WHAT I DO</p>
-
             <h2>
               Services I can
               <br />
               contribute to.
             </h2>
-
           </div>
-
         </div>
 
         <div className="services-grid">
+          {services.map((service, index) => (
+            <div className="service-card" key={service.id}>
+              <div className="service-number">
+                {String(index + 1).padStart(2, "0")}
+              </div>
 
-          <div className="service-card">
-
-            <div className="service-number">
-              01
+              <i className={`bi ${service.icon || "bi-code-square"}`}></i>
+              <h3>{service.title}</h3>
+              <p>{service.description}</p>
             </div>
-
-            <i className="bi bi-window-stack"></i>
-
-            <h3>
-              Frontend Development
-            </h3>
-
-            <p>
-              Creating responsive and
-              user-friendly websites with modern
-              frontend technologies.
-            </p>
-
-          </div>
-
-          <div className="service-card">
-
-            <div className="service-number">
-              02
-            </div>
-
-            <i className="bi bi-code-square"></i>
-
-            <h3>
-              React Development
-            </h3>
-
-            <p>
-              Building reusable React components
-              and interactive application
-              interfaces.
-            </p>
-
-          </div>
-
-          <div className="service-card">
-
-            <div className="service-number">
-              03
-            </div>
-
-            <i className="bi bi-phone"></i>
-
-            <h3>
-              Responsive Web Design
-            </h3>
-
-            <p>
-              Designing layouts that work smoothly
-              across desktop, tablet and mobile
-              devices.
-            </p>
-
-          </div>
-
+          ))}
         </div>
-
       </section>
 
       {/* =========================================
           CONTACT
       ========================================= */}
 
-      <section
-        className="section contact-section"
-        id="contact"
-      >
-
+      <section className="section contact-section" id="contact">
         <div className="section-heading">
-
           <span>08</span>
-
           <div>
-
             <p>GET IN TOUCH</p>
-
             <h2>
               Let's build something
               <br />
               meaningful together.
             </h2>
-
           </div>
-
         </div>
 
         <div className="contact-grid">
-
           <div className="contact-info">
-
             <p className="contact-intro">
-              Have a project, opportunity or simply
-              want to connect? I'd love to hear from
-              you.
+              {profile?.contact_intro}
             </p>
 
-            <div className="contact-item">
-
-              <div>
-                <i className="bi bi-envelope-fill"></i>
+            {profile?.email && (
+              <div className="contact-item">
+                <div>
+                  <i className="bi bi-envelope-fill"></i>
+                </div>
+                <section>
+                  <span>EMAIL</span>
+                  <br />
+                  <a href={`mailto:${profile.email}`}>
+                    {profile.email}
+                  </a>
+                </section>
               </div>
+            )}
 
-              <section>
-
-                <span>EMAIL</span> <br />
-
-                <a href="mailto:asmiraseed15@gmail.com">
-                  asmiraseed15@gmail.com
-                </a>
-
-              </section>
-
-            </div>
-
-            <div className="contact-item">
-
-              <div>
-                <i className="bi bi-telephone-fill"></i>
+            {profile?.phone && (
+              <div className="contact-item">
+                <div>
+                  <i className="bi bi-telephone-fill"></i>
+                </div>
+                <section>
+                  <span>PHONE</span>
+                  <br />
+                  <a href={`tel:${profile.phone.replace(/\s/g, "")}`}>
+                    {profile.phone}
+                  </a>
+                </section>
               </div>
+            )}
 
-              <section>
-
-                <span>PHONE</span> <br />
-
-                <a href="tel:+919344418518">
-                  +91 93444 18518
-                </a>
-
-              </section>
-
-            </div>
-
-            <div className="contact-item">
-
-              <div>
-                <i className="bi bi-geo-alt-fill"></i>
+            {profile?.location && (
+              <div className="contact-item">
+                <div>
+                  <i className="bi bi-geo-alt-fill"></i>
+                </div>
+                <section>
+                  <span>LOCATION</span>
+                  <p>{profile.location}</p>
+                </section>
               </div>
-
-              <section>
-
-                <span>LOCATION</span>
-
-                <p>
-                  Puducherry, India
-                </p>
-
-              </section>
-
-            </div>
-
+            )}
           </div>
 
           <form
             className="contact-form"
             onSubmit={handleContactSubmit}
           >
-
             <div className="form-row">
-
               <div className="form-group">
-
-                <label htmlFor="name">
-                  YOUR NAME
-                </label>
-
+                <label htmlFor="name">YOUR NAME</label>
                 <input
                   id="name"
                   name="name"
                   type="text"
                   placeholder="Enter your name"
+                  required
                 />
-
               </div>
 
               <div className="form-group">
-
-                <label htmlFor="email">
-                  EMAIL ADDRESS
-                </label>
-
+                <label htmlFor="email">EMAIL ADDRESS</label>
                 <input
                   id="email"
                   name="email"
                   type="email"
                   placeholder="Enter your email"
+                  required
                 />
-
               </div>
-
             </div>
 
             <div className="form-group">
-
-              <label htmlFor="subject">
-                SUBJECT
-              </label>
-
+              <label htmlFor="subject">SUBJECT</label>
               <input
                 id="subject"
                 name="subject"
                 type="text"
                 placeholder="What would you like to discuss?"
+                required
               />
-
             </div>
 
             <div className="form-group">
-
-              <label htmlFor="message">
-                MESSAGE
-              </label>
-
+              <label htmlFor="message">MESSAGE</label>
               <textarea
                 id="message"
                 name="message"
                 rows={6}
                 placeholder="Tell me about your project or opportunity..."
+                required
               ></textarea>
-
             </div>
 
             <button
@@ -2094,11 +1555,8 @@ function App() {
               Send Message
               <i className="bi bi-arrow-up-right"></i>
             </button>
-
           </form>
-
         </div>
-
       </section>
 
       {/* =========================================
@@ -2106,73 +1564,65 @@ function App() {
       ========================================= */}
 
       <footer className="footer">
-
         <div className="footer-main">
-
           <div className="footer-brand">
-
             <h3>
-              Asmina<span>Parveen</span>
+              {profile?.footer_brand || profile?.name}
             </h3>
-
-            <p>
-              Frontend Developer &amp; Medical
-              Coding Professional.
-            </p>
-
+            <p>{profile?.footer_description}</p>
           </div>
 
           <div className="footer-links">
-
             <a href="#home">Home</a>
             <a href="#about">About</a>
             <a href="#skills">Skills</a>
             <a href="#projects">Projects</a>
             <a href="#contact">Contact</a>
-
           </div>
 
           <div className="footer-social">
+            {profile?.github_url && (
+              <a
+                href={profile.github_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub"
+              >
+                <i className="fab fa-github"></i>
+              </a>
+            )}
 
-            <a
-              href="https://github.com/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <i className="bi bi-github"></i>
-            </a>
+            {profile?.linkedin_url && (
+              <a
+                href={profile.linkedin_url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="LinkedIn"
+              >
+                <i className="fab fa-linkedin-in"></i>
+              </a>
+            )}
 
-            <a
-  href="https://www.linkedin.com/in/asmi-raseed-160320436/"
-  target="_blank"
-  rel="noreferrer"
-  aria-label="LinkedIn"
->
-  <i className="bi bi-linkedin"></i>
-</a>
-
-            <a href="mailto:asmiraseed15@gmail.com">
-              <i className="bi bi-envelope-fill"></i>
-            </a>
-
+            {profile?.email && (
+              <a
+                href={`mailto:${profile.email}`}
+                aria-label="Email"
+              >
+                <i className="bi bi-envelope-fill"></i>
+              </a>
+            )}
           </div>
-
         </div>
 
         <div className="footer-bottom">
-
           <span>
-            © 2026 Asmina Parveen. All rights reserved.
+            {profile?.copyright_text}
           </span>
-
           <span>
-            Designed &amp; Built with React
+            {profile?.footer_credit}
           </span>
-
         </div>
-
       </footer>
-
     </div>
   );
 }
