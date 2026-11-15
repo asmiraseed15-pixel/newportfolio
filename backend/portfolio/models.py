@@ -1,6 +1,10 @@
 
 
 from django.db import models
+from cloudinary_storage.storage import (
+    RawMediaCloudinaryStorage,
+    VideoMediaCloudinaryStorage,
+)
 
 
 # 1. Contact Messages
@@ -19,15 +23,18 @@ class ContactMessage(models.Model):
         ordering = ["-created_at"]
 
 
-# 2. Main Portfolio Profile / Hero / Contact / Footer
+# 2. Main Portfolio Profile
 class PortfolioProfile(models.Model):
     name = models.CharField(max_length=150, default="Asmina Parveen")
     role = models.CharField(max_length=250, blank=True)
     greeting = models.CharField(max_length=100, blank=True)
     availability_text = models.CharField(max_length=150, blank=True)
     hero_description = models.TextField(blank=True)
+
     profile_image = models.ImageField(
-        upload_to="portfolio/profile/", blank=True, null=True
+        upload_to="portfolio/profile/",
+        blank=True,
+        null=True
     )
 
     hero_card_one = models.CharField(max_length=150, blank=True)
@@ -62,9 +69,14 @@ class AboutContent(models.Model):
     learning_text = models.TextField(blank=True)
     voice_label = models.CharField(max_length=150, blank=True)
     voice_title = models.CharField(max_length=150, blank=True)
+
     voice_audio = models.FileField(
-        upload_to="portfolio/voice/", blank=True, null=True
+        upload_to="portfolio/voice/",
+        storage=VideoMediaCloudinaryStorage(),
+        blank=True,
+        null=True
     )
+
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
@@ -94,7 +106,12 @@ class Project(models.Model):
     technologies = models.CharField(max_length=500)
     github_url = models.URLField(blank=True, null=True)
     live_url = models.URLField(blank=True, null=True)
-    image = models.ImageField(upload_to="projects/", blank=True, null=True)
+
+    image = models.ImageField(
+        upload_to="projects/",
+        blank=True,
+        null=True
+    )
 
     icon = models.CharField(max_length=100, blank=True)
     features = models.JSONField(default=list, blank=True)
@@ -147,6 +164,7 @@ class Education(models.Model):
 
 # 8. Resume / Degree / Medical Documents
 class PortfolioDocument(models.Model):
+
     DOCUMENT_TYPES = [
         ("resume", "Resume"),
         ("degree", "Degree Certificate"),
@@ -159,19 +177,33 @@ class PortfolioDocument(models.Model):
     ]
 
     document_type = models.CharField(
-        max_length=30, choices=DOCUMENT_TYPES, unique=True
+        max_length=30,
+        choices=DOCUMENT_TYPES,
+        unique=True
     )
+
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+
     preview_image = models.ImageField(
-        upload_to="portfolio/documents/previews/", blank=True, null=True
+        upload_to="portfolio/documents/previews/",
+        blank=True,
+        null=True
     )
+
     file = models.FileField(
-        upload_to="portfolio/documents/files/", blank=True, null=True
+        upload_to="portfolio/documents/files/",
+        storage=RawMediaCloudinaryStorage(),
+        blank=True,
+        null=True
     )
+
     file_type = models.CharField(
-        max_length=10, choices=FILE_TYPES, default="image"
+        max_length=10,
+        choices=FILE_TYPES,
+        default="image"
     )
+
     download_name = models.CharField(max_length=200, blank=True)
     display_order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
