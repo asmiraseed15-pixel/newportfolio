@@ -60,11 +60,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
 
-    # Cloudinary
     "cloudinary_storage",
     "cloudinary",
 
-    # Project app
     "portfolio",
 ]
 
@@ -150,12 +148,6 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": (
             "django.contrib.auth.password_validation."
             "MinimumLengthValidator"
-        ),
-    },
-    {
-        "NAME": (
-            "django.contrib.auth.password_validation."
-            "CommonPasswordValidator"
         ),
     },
     {
@@ -262,10 +254,21 @@ DEFAULT_FROM_EMAIL = os.getenv(
     EMAIL_HOST_USER or ""
 )
 
-# Contact form recipient email
 CONTACT_EMAIL = os.getenv(
     "CONTACT_EMAIL",
     EMAIL_HOST_USER or ""
+)
+
+
+# ==================================================
+# RESEND EMAIL CONFIGURATION
+# ==================================================
+
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+
+RESEND_FROM_EMAIL = os.getenv(
+    "RESEND_FROM_EMAIL",
+    "onboarding@resend.dev"
 )
 
 
