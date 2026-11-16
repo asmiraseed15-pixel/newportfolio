@@ -38,7 +38,10 @@ from .serializers import (
 )
 
 
-# Complete Portfolio API
+# ==================================================
+# COMPLETE PORTFOLIO API
+# ==================================================
+
 class PortfolioContentAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -101,7 +104,10 @@ class PortfolioContentAPIView(APIView):
         return Response(data)
 
 
-# Existing Projects API
+# ==================================================
+# PROJECTS API
+# ==================================================
+
 class ProjectListAPIView(generics.ListAPIView):
     queryset = Project.objects.filter(
         is_active=True
@@ -111,7 +117,10 @@ class ProjectListAPIView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
 
-# Existing Skills API
+# ==================================================
+# SKILLS API
+# ==================================================
+
 class SkillListAPIView(generics.ListAPIView):
     queryset = Skill.objects.filter(
         is_active=True
@@ -121,7 +130,10 @@ class SkillListAPIView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
 
-# Contact Form API - Resend Email Integration
+# ==================================================
+# CONTACT FORM API - RESEND EMAIL
+# ==================================================
+
 class ContactMessageCreateAPIView(generics.CreateAPIView):
     queryset = ContactMessage.objects.all()
     serializer_class = ContactMessageSerializer
@@ -157,8 +169,8 @@ Message:
 """
 
         try:
-            # Get Resend API key
-            api_key = os.getenv("RESEND_API_KEY", "")
+            # Get Resend API key from Django settings
+            api_key = settings.RESEND_API_KEY
 
             if not api_key:
                 raise ValueError(
@@ -167,7 +179,7 @@ Message:
 
             # Prepare email data
             email_data = {
-                "from": "onboarding@resend.dev",
+                "from": settings.RESEND_FROM_EMAIL,
                 "to": [settings.CONTACT_EMAIL],
                 "subject": email_subject,
                 "text": email_message,
@@ -176,9 +188,10 @@ Message:
             if email:
                 email_data["reply_to"] = email
 
-            # Create Resend API request
+            # Convert email data to JSON
             payload = json.dumps(email_data).encode("utf-8")
 
+            # Create Resend API request
             api_request = urllib.request.Request(
                 url="https://api.resend.com/emails",
                 data=payload,
@@ -217,7 +230,9 @@ Message:
                 "utf-8", errors="replace"
             )
 
-            print("RESEND API ERROR:", error.code, error_details)
+            print("RESEND STATUS CODE:", error.code)
+            print("RESEND ERROR DETAILS:", error_details)
+            print("RESEND ERROR HEADERS:", dict(error.headers))
 
         except Exception as error:
 
