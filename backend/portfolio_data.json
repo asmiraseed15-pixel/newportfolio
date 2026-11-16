@@ -1,0 +1,752 @@
+[
+  {
+    "model": "portfolio.portfolioprofile",
+    "pk": 1,
+    "fields": {
+      "name": "Asmina Parveen",
+      "role": "Full Stack Developer & Medical Coding Professional",
+      "greeting": "HELLO, I'M",
+      "availability_text": "Available for opportunities",
+      "hero_description": "I build responsive and user-friendly web applications using React, TypeScript, Python and Django. I work across frontend development, backend APIs and databases, while bringing a professional background in Microbiology, Medical Coding and customer service.",
+      "profile_image": "portfolio/profile/pro.png",
+      "hero_card_one": "Full Stack Developer",
+      "hero_card_two": "Medical Coder",
+      "email": "asmiraseed15@gmail.com",
+      "phone": "+91 93444 18518",
+      "location": "Puducherry, India",
+      "contact_intro": "Have a project, opportunity or simply want to connect? I'd love to hear from you.",
+      "github_url": "https://github.com/asmiraseed15-pixel",
+      "linkedin_url": "https://www.linkedin.com/in/asmi-raseed-160320436/",
+      "footer_brand": "Asmina Parveen",
+      "footer_description": "Full Stack Developer & Medical Coding Professional.",
+      "footer_links": [
+        {
+          "label": "Home",
+          "url": "#home"
+        },
+        {
+          "label": "About",
+          "url": "#about"
+        },
+        {
+          "label": "Skills",
+          "url": "#skills"
+        },
+        {
+          "label": "Projects",
+          "url": "#projects"
+        },
+        {
+          "label": "Contact",
+          "url": "#contact"
+        }
+      ],
+      "copyright_text": "© 2026 Asmina Parveen. All rights reserved.",
+      "footer_credit": "Designed & Built with React",
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.aboutcontent",
+    "pk": 1,
+    "fields": {
+      "heading": "About Me",
+      "paragraphs": [
+        "I am Asmina Parveen, an aspiring Full Stack Developer and Medical Coding Professional who enjoys combining technology, creativity and attention to detail.",
+        "With a background in B.Sc Microbiology and Medical Coding, along with professional BPO experience, I bring strong communication, problem-solving and analytical skills into my development journey.",
+        "I enjoy building responsive web applications, working with frontend interfaces, backend development, REST APIs and databases to create complete and meaningful digital experiences."
+      ],
+      "tags": [
+        "Frontend",
+        "React",
+        "TypeScript",
+        "Python",
+        "Django",
+        "REST API",
+        "SQL",
+        "Medical Coding",
+        "Communication"
+      ],
+      "learning_heading": "Always learning.",
+      "learning_text": "Currently improving my skills in Django, REST APIs, databases and AI / Generative AI technologies.",
+      "voice_label": "LISTEN TO MY INTRODUCTION",
+      "voice_title": "My Voice",
+      "voice_audio": "portfolio/voice/Voice.mp3",
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 1,
+    "fields": {
+      "name": "HTML",
+      "category": "Frontend",
+      "proficiency": 90,
+      "icon": "bi bi-filetype-html",
+      "display_order": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 2,
+    "fields": {
+      "name": "CSS",
+      "category": "Frontend",
+      "proficiency": 85,
+      "icon": "bi bi-filetype-css",
+      "display_order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 3,
+    "fields": {
+      "name": "JavaScript",
+      "category": "Frontend",
+      "proficiency": 80,
+      "icon": "bi bi-filetype-js",
+      "display_order": 2,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 4,
+    "fields": {
+      "name": "TypeScript",
+      "category": "Frontend",
+      "proficiency": 75,
+      "icon": "bi bi-filetype-tsx",
+      "display_order": 3,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 5,
+    "fields": {
+      "name": "React",
+      "category": "Frontend",
+      "proficiency": 85,
+      "icon": "bi bi-code-square",
+      "display_order": 4,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 6,
+    "fields": {
+      "name": "React Native",
+      "category": "Frontend",
+      "proficiency": 75,
+      "icon": "bi bi-phone",
+      "display_order": 5,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 7,
+    "fields": {
+      "name": "Python",
+      "category": "Backend",
+      "proficiency": 80,
+      "icon": "bi bi-filetype-py",
+      "display_order": 6,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 8,
+    "fields": {
+      "name": "Django",
+      "category": "Backend",
+      "proficiency": 75,
+      "icon": "bi bi-server",
+      "display_order": 7,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 9,
+    "fields": {
+      "name": "Django REST Framework",
+      "category": "Backend",
+      "proficiency": 70,
+      "icon": "bi bi-braces",
+      "display_order": 8,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 10,
+    "fields": {
+      "name": "REST API",
+      "category": "Backend",
+      "proficiency": 75,
+      "icon": "bi bi-diagram-3",
+      "display_order": 9,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 11,
+    "fields": {
+      "name": "SQLite",
+      "category": "Database",
+      "proficiency": 80,
+      "icon": "bi bi-database",
+      "display_order": 10,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 12,
+    "fields": {
+      "name": "PostgreSQL",
+      "category": "Database",
+      "proficiency": 70,
+      "icon": "bi bi-database-fill",
+      "display_order": 11,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 13,
+    "fields": {
+      "name": "MySQL",
+      "category": "Database",
+      "proficiency": 65,
+      "icon": "bi bi-database",
+      "display_order": 12,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 14,
+    "fields": {
+      "name": "MongoDB",
+      "category": "Database",
+      "proficiency": 60,
+      "icon": "bi bi-database-check",
+      "display_order": 13,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 15,
+    "fields": {
+      "name": "Machine Learning",
+      "category": "AI & Machine Learning",
+      "proficiency": 55,
+      "icon": "bi bi-robot",
+      "display_order": 14,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 16,
+    "fields": {
+      "name": "Deep Learning",
+      "category": "AI & Machine Learning",
+      "proficiency": 50,
+      "icon": "bi bi-cpu",
+      "display_order": 15,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 17,
+    "fields": {
+      "name": "Generative AI",
+      "category": "AI & Machine Learning",
+      "proficiency": 55,
+      "icon": "bi bi-stars",
+      "display_order": 16,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 18,
+    "fields": {
+      "name": "LLM",
+      "category": "AI & Machine Learning",
+      "proficiency": 50,
+      "icon": "bi bi-chat-square-text",
+      "display_order": 17,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 19,
+    "fields": {
+      "name": "RAG",
+      "category": "AI & Machine Learning",
+      "proficiency": 50,
+      "icon": "bi bi-diagram-3",
+      "display_order": 18,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 20,
+    "fields": {
+      "name": "Pinecone",
+      "category": "AI & Machine Learning",
+      "proficiency": 45,
+      "icon": "bi bi-database",
+      "display_order": 19,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 21,
+    "fields": {
+      "name": "Git",
+      "category": "Tools & Deployment",
+      "proficiency": 80,
+      "icon": "bi bi-git",
+      "display_order": 20,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 22,
+    "fields": {
+      "name": "GitHub",
+      "category": "Tools & Deployment",
+      "proficiency": 85,
+      "icon": "bi bi-github",
+      "display_order": 21,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 23,
+    "fields": {
+      "name": "VS Code",
+      "category": "Tools & Deployment",
+      "proficiency": 85,
+      "icon": "bi bi-code-slash",
+      "display_order": 22,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 24,
+    "fields": {
+      "name": "Postman",
+      "category": "Tools & Deployment",
+      "proficiency": 70,
+      "icon": "bi bi-send",
+      "display_order": 23,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 25,
+    "fields": {
+      "name": "Render",
+      "category": "Tools & Deployment",
+      "proficiency": 70,
+      "icon": "bi bi-cloud",
+      "display_order": 24,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.skill",
+    "pk": 26,
+    "fields": {
+      "name": "Vercel",
+      "category": "Tools & Deployment",
+      "proficiency": 70,
+      "icon": "bi bi-cloud-upload",
+      "display_order": 25,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.project",
+    "pk": 1,
+    "fields": {
+      "title": "StepUp Shoe Ecommerce",
+      "description": "Online shoe shopping platform with product browsing, cart and checkout",
+      "technologies": "React, TypeScript, Django, Python, SQLite",
+      "github_url": "https://asmiraseed15-pixel.github.io/ShoeEcommerce/",
+      "live_url": "https://frontend-three-opal-26.vercel.app/",
+      "image": "projects/Screenshot_1745.png",
+      "icon": "bi-cart3",
+      "features": [
+        "Product browsing",
+        "Product categories",
+        "Product search and filtering",
+        "Product details and images",
+        "Shopping cart",
+        "Wishlist management",
+        "User login and registration",
+        "Order placement",
+        "Checkout",
+        "Payment integration",
+        "Order tracking",
+        "Admin product management",
+        "Reviews and ratings",
+        "Responsive design"
+      ],
+      "display_order": 0,
+      "is_active": true,
+      "created_at": "2026-11-12T18:57:03.896Z"
+    }
+  },
+  {
+    "model": "portfolio.project",
+    "pk": 2,
+    "fields": {
+      "title": "GroCo",
+      "description": "A modern grocery shopping website built with React and TypeScript with product browsing, cart, checkout and payment flow.",
+      "technologies": "React, TypeScript, CSS",
+      "github_url": "https://asmiraseed15-pixel.github.io/GroCo/",
+      "live_url": "https://groco-mu.vercel.app",
+      "image": "projects/groco.png",
+      "icon": "bi-cart3",
+      "features": [
+        "Product browsing",
+        "Product categories",
+        "Product details",
+        "Shopping cart",
+        "Quantity management",
+        "Coupon functionality",
+        "Checkout flow",
+        "Payment flow",
+        "Responsive design"
+      ],
+      "display_order": 0,
+      "is_active": true,
+      "created_at": "2026-11-13T13:43:52.951Z"
+    }
+  },
+  {
+    "model": "portfolio.project",
+    "pk": 3,
+    "fields": {
+      "title": "HopeHands Foundation",
+      "description": "A charity website designed to present causes, volunteering opportunities, donations and community impact in a clean responsive interface.",
+      "technologies": "React, TypeScript, CSS",
+      "github_url": "https://asmiraseed15-pixel.github.io/charity1/",
+      "live_url": "https://charity1-one.vercel.app/",
+      "image": "projects/charity.png",
+      "icon": "bi-heart-pulse",
+      "features": [
+        "Responsive charity website",
+        "Causes section",
+        "Donation flow",
+        "Volunteer section",
+        "Volunteer form",
+        "Thank-you page",
+        "Impact section",
+        "Community stories"
+      ],
+      "display_order": 0,
+      "is_active": true,
+      "created_at": "2026-11-13T13:43:52.981Z"
+    }
+  },
+  {
+    "model": "portfolio.project",
+    "pk": 4,
+    "fields": {
+      "title": "FoodFlow",
+      "description": "A food delivery mobile application concept built with Expo and React Native with authentication, cart and checkout experiences.",
+      "technologies": "React Native, Expo, JavaScript",
+      "github_url": "https://asmiraseed15-pixel.github.io/Food/",
+      "live_url": null,
+      "image": "projects/food.png",
+      "icon": "bi-phone",
+      "features": [
+        "Authentication",
+        "Login and signup",
+        "Food browsing",
+        "Shopping cart",
+        "Cart quantity management",
+        "Checkout",
+        "Address management",
+        "Payment selection",
+        "Mobile-friendly experience"
+      ],
+      "display_order": 0,
+      "is_active": true,
+      "created_at": "2026-11-13T13:43:53.021Z"
+    }
+  },
+  {
+    "model": "portfolio.project",
+    "pk": 5,
+    "fields": {
+      "title": "Photography Portfolio",
+      "description": "A stylish photography portfolio website created to showcase photographs through a clean, responsive and visually engaging interface.",
+      "technologies": "HTML, CSS, Bootstrap, JavaScript",
+      "github_url": "https://asmiraseed15-pixel.github.io/Photography/",
+      "live_url": null,
+      "image": "projects/photo.png",
+      "icon": "bi-camera",
+      "features": [
+        "Responsive photography portfolio",
+        "Modern landing page",
+        "Photography gallery",
+        "Bootstrap responsive layout",
+        "Image showcase",
+        "Interactive navigation",
+        "JavaScript functionality",
+        "Mobile-friendly design"
+      ],
+      "display_order": 0,
+      "is_active": true,
+      "created_at": "2026-11-13T13:43:53.048Z"
+    }
+  },
+  {
+    "model": "portfolio.project",
+    "pk": 6,
+    "fields": {
+      "title": "To Do List",
+      "description": "A personal productivity and management mobile application built using React Native and JavaScript. It helps users manage daily tasks, track health-related activities, monitor financial updates, and set reminders to stay organized and productive.",
+      "technologies": "React Native, JavaScript.",
+      "github_url": "https://asmiraseed15-pixel.github.io/reminderapp/",
+      "live_url": "https://reminderapp-nu.vercel.app/",
+      "image": "projects/todo.png",
+      "icon": "bi-check2-square",
+      "features": [
+        "Daily task management",
+        "Create and organize tasks",
+        "Health activity tracking",
+        "Financial updates",
+        "Custom reminders",
+        "Task status tracking",
+        "Daily productivity management",
+        "User-friendly mobile interface"
+      ],
+      "display_order": 0,
+      "is_active": true,
+      "created_at": "2026-11-13T15:23:28.837Z"
+    }
+  },
+  {
+    "model": "portfolio.project",
+    "pk": 7,
+    "fields": {
+      "title": "Vetrix Learning App",
+      "description": "A multi-purpose learning and skill development application built using React Native and JavaScript. It provides users with opportunities to learn 7 different languages, enjoy interactive games, songs and fun activities, participate in quizzes, explore various courses, and practice mock interviews to improve their communication and professional skills.",
+      "technologies": "React Native, JavaScript.",
+      "github_url": "https://asmiraseed15-pixel.github.io/VETRIX/",
+      "live_url": "https://vetrix-learning-scheme.vercel.app/",
+      "image": "projects/vetrix.png",
+      "icon": "bi-mortarboard",
+      "features": [
+        "Learn 7 different languages",
+        "Interactive language learning",
+        "Songs and entertainment",
+        "Fun games and activities",
+        "Interactive quizzes",
+        "Multiple online courses",
+        "Mock interview practice",
+        "Professional skill development",
+        "Learning and progress improvement"
+      ],
+      "display_order": 0,
+      "is_active": true,
+      "created_at": "2026-11-13T15:41:09.797Z"
+    }
+  },
+  {
+    "model": "portfolio.project",
+    "pk": 8,
+    "fields": {
+      "title": "Supplyhive Stationary Shop",
+      "description": "Supplyhive is an online stationery shopping platform developed using Django and JavaScript. It allows users to explore and purchase a wide range of stationery products, making it easy to browse, select, and manage stationery essentials through a user-friendly interface.",
+      "technologies": "Django, Python, JavaScript, HTML, CSS.",
+      "github_url": "https://asmiraseed15-pixel.github.io/supplyhive/",
+      "live_url": "https://supplyhive-1.vercel.app/",
+      "image": "projects/supplyhive.png",
+      "icon": "bi-bag",
+      "features": [
+        "Online stationery shopping",
+        "Stationery product browsing",
+        "Product categories",
+        "Product details",
+        "Stationery essentials management",
+        "User-friendly shopping interface",
+        "Responsive design"
+      ],
+      "display_order": 0,
+      "is_active": true,
+      "created_at": "2026-11-13T15:45:13.610Z"
+    }
+  },
+  {
+    "model": "portfolio.experience",
+    "pk": 1,
+    "fields": {
+      "section_label": "PROFESSIONAL EXPERIENCE",
+      "title": "BPO / Customer Service",
+      "organization": "Insuremile Insurance Company",
+      "description": "Developed strong communication, customer handling, documentation and problem-solving skills through professional experience.",
+      "period": "",
+      "display_order": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.experience",
+    "pk": 2,
+    "fields": {
+      "section_label": "CURRENT LEARNING",
+      "title": "Full Stack, Backend & AI Development",
+      "organization": "Continuous Skill Development",
+      "description": "Building practical projects with React, Python, Django and REST APIs while exploring databases, Machine Learning, Deep Learning and Generative AI.",
+      "period": "",
+      "display_order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.education",
+    "pk": 1,
+    "fields": {
+      "category": "DEGREE",
+      "title": "B.Sc Microbiology",
+      "institution": "Annamalai University",
+      "year": "2024",
+      "details": "",
+      "icon": "bi-mortarboard",
+      "display_order": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.education",
+    "pk": 2,
+    "fields": {
+      "category": "CERTIFICATION",
+      "title": "Medical Coding",
+      "institution": "Professional Certification",
+      "year": "Medical Coding Training",
+      "details": "",
+      "icon": "bi-award",
+      "display_order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.education",
+    "pk": 3,
+    "fields": {
+      "category": "CURRENT LEARNING",
+      "title": "Full Stack & AI Development",
+      "institution": "Currently Learning",
+      "year": "",
+      "details": "Django, REST API, SQL, PostgreSQL, MongoDB, AI, ML, Deep Learning, LLM, LangChain Memory, RAG & Pinecone",
+      "icon": "bi-code-slash",
+      "display_order": 2,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.portfoliodocument",
+    "pk": 1,
+    "fields": {
+      "document_type": "resume",
+      "title": "Resume",
+      "description": "My professional resume",
+      "preview_image": "portfolio/documents/previews/resumepdf.png",
+      "file": "portfolio/documents/files/Res.png",
+      "file_type": "image",
+      "download_name": "Asmina_Resume.pdf",
+      "display_order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.portfoliodocument",
+    "pk": 2,
+    "fields": {
+      "document_type": "degree",
+      "title": "Degree Certificate",
+      "description": "B.Sc Microbiology degree certificate",
+      "preview_image": "portfolio/documents/previews/convocation.png",
+      "file": "portfolio/documents/files/degree.png",
+      "file_type": "image",
+      "download_name": "Asmina_Degree.png",
+      "display_order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.portfoliodocument",
+    "pk": 3,
+    "fields": {
+      "document_type": "medical",
+      "title": "Medical Coding Certificate",
+      "description": "Medical Coding certification",
+      "preview_image": "portfolio/documents/previews/coding.png",
+      "file": "portfolio/documents/files/medical.png",
+      "file_type": "image",
+      "download_name": "Asmina_Medical_Coding.png",
+      "display_order": 2,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.service",
+    "pk": 1,
+    "fields": {
+      "title": "Full Stack Development",
+      "icon": "bi-window-stack",
+      "description": "Building complete web applications with responsive frontend interfaces, backend functionality and database integration.",
+      "display_order": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.service",
+    "pk": 2,
+    "fields": {
+      "title": "React Development",
+      "icon": "bi-code-square",
+      "description": "Building reusable React components and interactive application interfaces.",
+      "display_order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "portfolio.service",
+    "pk": 3,
+    "fields": {
+      "title": "Backend & API Development",
+      "icon": "bi-database",
+      "description": "Developing backend functionality using Python, Django, REST APIs and database technologies.",
+      "display_order": 2,
+      "is_active": true
+    }
+  }
+]
