@@ -196,9 +196,11 @@ Message:
                 url="https://api.resend.com/emails",
                 data=payload,
                 headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
+    "Authorization": f"Bearer {api_key}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "User-Agent": "AsminaPortfolio/1.0",
+},
                 method="POST",
             )
 
